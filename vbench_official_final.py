@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-VBench Direct Integration - 直接集成VBench核心逻辑
-直接使用VBench类，确保100%一致性
+VBench Direct Integration - Direct VBench Core Logic Integration
+Direct use of VBench class to ensure 100% consistency
 
 Copyright (c) 2025 Fating Hong <fatinghong@gmail.com>
 All rights reserved.
@@ -18,22 +18,22 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import argparse
 
-# 导入VBench
+# Import VBench
 from vbench import VBench
 from vbench.distributed import dist_init, print0
 
 
 class VBenchDirect:
-    """VBench Direct - 直接使用VBench类"""
+    """VBench Direct - Direct use of VBench class"""
     
     def __init__(self, device: str = "cuda", cache_dir: str = "./cache"):
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         self.cache_dir = cache_dir
         os.makedirs(cache_dir, exist_ok=True)
         
-        print(f"🚀 初始化VBench Direct (设备: {self.device})")
+        print(f"🚀 Initializing VBench Direct (device: {self.device})")
         
-        # 定义6个核心指标
+        # Define 6 core metrics
         self.core_metrics = [
             'subject_consistency',
             'background_consistency', 
@@ -43,23 +43,23 @@ class VBenchDirect:
             'imaging_quality'
         ]
         
-        # 初始化分布式环境
+        # Initialize distributed environment
         dist_init()
         
-        # 创建临时的json配置文件
+        # Create temporary json config file
         self.full_json_path = self._create_temp_json()
         
-        # 创建输出目录
+        # Create output directory
         self.output_path = tempfile.mkdtemp(prefix="vbench_output_")
         
-        # 初始化VBench对象
+        # Initialize VBench object
         self.vbench = VBench(self.device, self.full_json_path, self.output_path)
         
-        print(f"✅ VBench对象初始化完成")
+        print(f"✅ VBench object initialization completed")
     
     def _create_temp_json(self) -> str:
-        """创建临时的VBench配置JSON文件"""
-        # 简化的VBench配置
+        """Create temporary VBench configuration JSON file"""
+        # Simplified VBench configuration
         config = {
             "subject_consistency": {},
             "background_consistency": {},
@@ -76,81 +76,81 @@ class VBenchDirect:
         return temp_json
     
     def _prepare_video_directory(self, video_paths: List[str]) -> str:
-        """准备视频目录"""
+        """Prepare video directory"""
         temp_dir = tempfile.mkdtemp(prefix="vbench_videos_")
         
-        print(f"🔄 准备视频目录: {temp_dir}")
+        print(f"🔄 Preparing video directory: {temp_dir}")
         
         for i, video_path in enumerate(video_paths):
             if not os.path.exists(video_path):
-                raise FileNotFoundError(f"视频文件不存在: {video_path}")
+                raise FileNotFoundError(f"Video file not found: {video_path}")
             
             _, ext = os.path.splitext(video_path)
             dest_name = f"video_{i:03d}{ext}"
             dest_path = os.path.join(temp_dir, dest_name)
             
-            print(f"   📄 复制: {os.path.basename(video_path)} -> {dest_name}")
+            print(f"   📄 Copying: {os.path.basename(video_path)} -> {dest_name}")
             shutil.copy2(video_path, dest_path)
         
         return temp_dir
     
     def evaluate_videos(self, video_paths: List[str], metrics: Optional[List[str]] = None) -> Dict[str, float]:
-        """评估视频，直接调用VBench核心逻辑"""
+        """Evaluate videos, directly call VBench core logic"""
         if metrics is None:
             metrics = self.core_metrics.copy()
         
-        print(f"🔍 开始评估 {len(video_paths)} 个视频，共 {len(metrics)} 个指标")
+        print(f"🔍 Starting evaluation of {len(video_paths)} videos with {len(metrics)} metrics")
         print("=" * 60)
         
         temp_video_dir = None
         
         try:
-            # 准备视频目录
+            # Prepare video directory
             temp_video_dir = self._prepare_video_directory(video_paths)
             
-            # === 核心VBench逻辑 (从官方evaluate.py移植) ===
-            print0(f'🚀 开始VBench评估')
+            # === Core VBench logic (ported from official evaluate.py) ===
+            print0(f'🚀 Starting VBench evaluation')
             
             current_time = datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
             
             kwargs = {}
-            prompt = []  # 空列表表示从文件名读取prompt
+            prompt = []  # Empty list means read prompt from filename
             
-            # 设置参数
+            # Set parameters
             kwargs['imaging_quality_preprocessing_mode'] = 'longer'
             
-            # 调用VBench核心评估函数
-            print0(f'📊 调用VBench.evaluate...')
+            # Call VBench core evaluation function
+            print0(f'📊 Calling VBench.evaluate...')
             
             self.vbench.evaluate(
                 videos_path=temp_video_dir,
                 name=f'results_{current_time}',
-                prompt_list=prompt,  # 从文件名读取prompt
+                prompt_list=prompt,  # Read prompt from filename
                 dimension_list=metrics,
-                local=False,  # 不从本地加载检查点
-                read_frame=False,  # 直接读取视频
+                local=False,  # Do not load checkpoints from local
+                read_frame=False,  # Read video directly
                 mode='custom_input',
                 **kwargs
             )
             
-            print0('✅ VBench评估完成')
+            print0('✅ VBench evaluation completed')
             
-            # 解析结果
+            # Parse results
             results = self._parse_results(current_time)
             
             return results
             
         finally:
-            # 清理临时目录
+            # Clean up temporary directory
             if temp_video_dir and os.path.exists(temp_video_dir):
                 shutil.rmtree(temp_video_dir)
-                print(f"🗑️  清理临时视频目录: {temp_video_dir}")
+                print(f"🗑️  Cleaned temporary video directory: {temp_video_dir}")
     
     def _parse_results(self, result_name: str) -> Dict[str, float]:
-        """解析VBench结果"""
-        print(f"📊 解析VBench结果...")
+        """Parse VBench results"""
+        print(f"📊 Parsing VBench results...")
         
-        # 查找eval_results文件 (这个文件包含评估结果)
+        # Find eval_results file (this file contains evaluation results)
         result_file = None
         
         for file in os.listdir(self.output_path):
@@ -159,20 +159,20 @@ class VBenchDirect:
                 break
         
         if result_file is None:
-            print(f"⚠️ 未找到eval_results文件在: {self.output_path}")
-            print(f"目录内容: {os.listdir(self.output_path)}")
-            # 返回默认值
+            print(f"⚠️ eval_results file not found in: {self.output_path}")
+            print(f"Directory contents: {os.listdir(self.output_path)}")
+            # Return default values
             return {metric: 0.0 for metric in self.core_metrics}
         
-        print(f"   📄 结果文件: {result_file}")
+        print(f"   📄 Result file: {result_file}")
         
         with open(result_file, 'r', encoding='utf-8') as f:
             raw_results = json.load(f)
         
-        print(f"   📋 原始结果键: {list(raw_results.keys())}")
+        print(f"   📋 Raw result keys: {list(raw_results.keys())}")
         
-        # 解析结果
-        # VBench格式: {"metric_name": [total_score, detailed_results]}
+        # Parse results
+        # VBench format: {"metric_name": [total_score, detailed_results]}
         results = {}
         
         for metric in self.core_metrics:
@@ -180,29 +180,29 @@ class VBenchDirect:
                 metric_data = raw_results[metric]
                 
                 if isinstance(metric_data, list) and len(metric_data) >= 1:
-                    # 取第一个元素作为总分
+                    # Take first element as total score
                     score = metric_data[0]
                     if isinstance(score, (int, float)):
                         results[metric] = float(score)
                         print(f"   ✅ {metric}: {results[metric]}")
                     else:
-                        print(f"   ⚠️ {metric} 第一个元素不是数值: {type(score)}")
+                        print(f"   ⚠️ {metric} first element is not numeric: {type(score)}")
                         results[metric] = 0.0
                         
                 elif isinstance(metric_data, (int, float)):
                     results[metric] = float(metric_data)
                     print(f"   ✅ {metric}: {results[metric]}")
                 else:
-                    print(f"   ⚠️ 未知的 {metric} 格式: {type(metric_data)}")
+                    print(f"   ⚠️ Unknown format for {metric}: {type(metric_data)}")
                     results[metric] = 0.0
             else:
-                print(f"   ❌ 结果中未找到: {metric}")
+                print(f"   ❌ Not found in results: {metric}")
                 results[metric] = 0.0
         
         return results
     
     def save_results(self, results: Dict[str, float], output_path: str = "vbench_direct_results.json"):
-        """保存结果到JSON文件"""
+        """Save results to JSON file"""
         clean_results = {}
         for k, v in results.items():
             if isinstance(v, (int, float)):
@@ -213,60 +213,60 @@ class VBenchDirect:
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(clean_results, f, indent=2, ensure_ascii=False)
         
-        print(f"✅ 结果已保存到: {output_path}")
+        print(f"✅ Results saved to: {output_path}")
     
     def cleanup(self):
-        """清理临时文件"""
+        """Clean up temporary files"""
         if hasattr(self, 'output_path') and os.path.exists(self.output_path):
             shutil.rmtree(self.output_path)
-            print(f"🗑️  清理输出目录: {self.output_path}")
+            print(f"🗑️  Cleaned output directory: {self.output_path}")
         
         if hasattr(self, 'full_json_path') and os.path.exists(self.full_json_path):
             os.remove(self.full_json_path)
-            print(f"🗑️  清理配置文件: {self.full_json_path}")
+            print(f"🗑️  Cleaned config file: {self.full_json_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VBench Direct - 直接集成VBench核心逻辑")
-    parser.add_argument("--videos", type=str, required=True, help="视频文件路径(用逗号分隔多个文件)")
-    parser.add_argument("--metrics", type=str, nargs='+', choices=['subject_consistency', 'background_consistency', 'motion_smoothness', 'dynamic_degree', 'aesthetic_quality', 'imaging_quality', 'all'], default=['all'], help="要计算的指标")
-    parser.add_argument("--device", type=str, default="cuda", help="计算设备")
-    parser.add_argument("--output", type=str, default="vbench_direct_results.json", help="输出文件路径")
+    parser = argparse.ArgumentParser(description="VBench Direct - Direct VBench Core Logic Integration")
+    parser.add_argument("--videos", type=str, required=True, help="Video file paths (comma-separated for multiple files)")
+    parser.add_argument("--metrics", type=str, nargs='+', choices=['subject_consistency', 'background_consistency', 'motion_smoothness', 'dynamic_degree', 'aesthetic_quality', 'imaging_quality', 'all'], default=['all'], help="Metrics to calculate")
+    parser.add_argument("--device", type=str, default="cuda", help="Computing device")
+    parser.add_argument("--output", type=str, default="vbench_direct_results.json", help="Output file path")
     
     args = parser.parse_args()
     
-    # 解析视频路径
+    # Parse video paths
     video_paths = [path.strip() for path in args.videos.split(',')]
     
-    # 验证视频文件存在
+    # Validate video files exist
     for video_path in video_paths:
         if not os.path.exists(video_path):
-            print(f"❌ 视频文件不存在: {video_path}")
+            print(f"❌ Video file not found: {video_path}")
             return
     
-    # 解析指标
+    # Parse metrics
     if 'all' in args.metrics:
-        metrics = None  # 使用默认的6个核心指标
+        metrics = None  # Use default 6 core metrics
     else:
         metrics = args.metrics
     
-    # 初始化VBench Direct
+    # Initialize VBench Direct
     vbench_direct = VBenchDirect(device=args.device)
     
     try:
-        # 评估视频
+        # Evaluate videos
         results = vbench_direct.evaluate_videos(video_paths, metrics)
         
-        # 保存结果
+        # Save results
         vbench_direct.save_results(results, args.output)
         
-        # 显示结果
-        print(f"\n�� VBench Direct 结果:")
+        # Display results
+        print(f"\n📊 VBench Direct Results:")
         for metric, score in results.items():
             print(f"  {metric}: {score}")
             
     finally:
-        # 清理
+        # Cleanup
         vbench_direct.cleanup()
 
 

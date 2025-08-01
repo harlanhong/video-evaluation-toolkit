@@ -1,31 +1,31 @@
 #!/usr/bin/env python3
 """
-综合视频指标计算器 (VBench集成版本)
-整合了LSE计算、VBench指标和其他视频质量指标
+Comprehensive Video Metrics Calculator (VBench Integrated Version)
+Integrates LSE calculation, VBench metrics, and other video quality metrics
 
 Copyright (c) 2025 Fating Hong <fatinghong@gmail.com>
 All rights reserved.
 
 This module integrates VBench metrics with comprehensive video evaluation tools.
 
-支持的指标:
-- 视频基本信息 (不需要GT): 帧数、分辨率、帧率、时长
-- 图像统计信息 (不需要GT): 亮度、对比度、饱和度、清晰度
-- 人脸分析 (不需要GT): 人脸检测率、平均人脸大小、人脸稳定性
-- 运动分析 (不需要GT): 运动强度、帧间差异
-- 人脸区域图像质量 (需要GT): face_psnr, face_ssim, face_lpips
-- 唇同步指标 (不需要GT): LSE distance, LSE confidence
-- VBench指标 (不需要GT): subject_consistency, background_consistency, motion_smoothness, 
+Supported Metrics:
+- Basic Video Info (no GT required): frame count, resolution, fps, duration
+- Image Statistics (no GT required): brightness, contrast, saturation, sharpness
+- Face Analysis (no GT required): face detection rate, average face size, face stability
+- Motion Analysis (no GT required): motion intensity, frame difference
+- Face Region Image Quality (GT required): face_psnr, face_ssim, face_lpips
+- Lip Sync Metrics (no GT required): LSE distance, LSE confidence
+- VBench Metrics (no GT required): subject_consistency, background_consistency, motion_smoothness, 
   dynamic_degree, aesthetic_quality, imaging_quality
 
-使用方法:
+Usage:
     from evalutation.metrics_calculator import VideoMetricsCalculator
     
-    # 不包含VBench
+    # Without VBench
     calculator = VideoMetricsCalculator()
     metrics = calculator.calculate_video_metrics("video.mp4")
     
-    # 包含VBench
+    # With VBench
     calculator = VideoMetricsCalculator(enable_vbench=True)
     metrics = calculator.calculate_video_metrics("video.mp4")
 """
@@ -45,28 +45,28 @@ from typing import Optional, Dict, List, Tuple, Any
 from pathlib import Path
 from tqdm import tqdm
 
-# 图像质量指标
+# Image quality metrics
 import lpips
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
-# LSE计算器
+# LSE calculator
 try:
-    # 作为包导入时使用相对导入
+    # Use relative import when imported as package
     from .lse_calculator import LSECalculator
 except ImportError:
-    # 直接运行时使用绝对导入
+    # Use absolute import when run directly
     import sys
     import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
     sys.path.append(current_dir)
     from lse_calculator import LSECalculator
 
-# VBench计算器
+# VBench calculator
 try:
-    # 作为包导入时使用相对导入
+    # Use relative import when imported as package
     from .vbench_official_final import VBenchDirect
 except ImportError:
-    # 直接运行时使用绝对导入
+    # Use absolute import when run directly
     import sys
     import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -75,130 +75,130 @@ except ImportError:
 
 
 class VideoMetricsCalculator:
-    """综合视频指标计算器"""
+    """Comprehensive Video Metrics Calculator"""
     
     def __init__(self, device: str = "cuda", enable_vbench: bool = False):
         """
-        初始化指标计算器
+        Initialize metrics calculator
         
         Args:
-            device: 计算设备 ("cuda" 或 "cpu")
-            enable_vbench: 是否启用VBench指标计算
+            device: Computing device ("cuda" or "cpu")
+            enable_vbench: Whether to enable VBench metrics calculation
         """
         self.device = device if torch.cuda.is_available() else "cpu"
         self.enable_vbench = enable_vbench
         
-        # 初始化LPIPS模型
-        print("🔄 正在初始化LPIPS模型...")
+        # Initialize LPIPS model
+        print("🔄 Initializing LPIPS model...")
         self.lpips_fn = lpips.LPIPS(net='alex').to(self.device)
         
-        # 初始化人脸检测器
-        print("🔄 正在初始化人脸检测器...")
+        # Initialize face detector
+        print("🔄 Initializing face detector...")
         self.face_detection_method = self._initialize_face_detector()
         self.face_detection_available = self.face_detection_method is not None
         
         if self.face_detection_available:
-            print(f"✅ 人脸检测器初始化成功 (方法: {self.face_detection_method})")
+            print(f"✅ Face detector initialized successfully (method: {self.face_detection_method})")
         else:
-            print("⚠️ 所有人脸检测器初始化失败，将跳过人脸相关指标")
+            print("⚠️ All face detectors failed to initialize, face-related metrics will be skipped")
         
-        # 初始化LSE计算器
-        print("🔄 正在初始化LSE计算器...")
+        # Initialize LSE calculator
+        print("🔄 Initializing LSE calculator...")
         try:
             self.lse_calculator = LSECalculator(device=self.device)
             self.lse_available = True
         except Exception as e:
-            print(f"⚠️ LSE计算器初始化失败: {e}")
+            print(f"⚠️ LSE calculator initialization failed: {e}")
             self.lse_available = False
         
-        # 初始化VBench计算器
+        # Initialize VBench calculator
         if self.enable_vbench:
-            print("🔄 正在初始化VBench计算器...")
+            print("🔄 Initializing VBench calculator...")
             try:
                 self.vbench_calculator = VBenchDirect(device=self.device)
                 self.vbench_available = True
-                print("✅ VBench计算器初始化成功")
+                print("✅ VBench calculator initialized successfully")
             except Exception as e:
-                print(f"⚠️ VBench计算器初始化失败: {e}")
+                print(f"⚠️ VBench calculator initialization failed: {e}")
                 self.vbench_available = False
         else:
             self.vbench_available = False
         
-        print(f"🚀 指标计算器初始化完成 (设备: {self.device}, VBench: {self.vbench_available})")
+        print(f"🚀 Metrics calculator initialization completed (device: {self.device}, VBench: {self.vbench_available})")
     
     def calculate_video_metrics(self, 
                                pred_path: str, 
                                gt_path: Optional[str] = None,
                                audio_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        计算单个视频的所有指标
+        Calculate all metrics for a single video
         
         Args:
-            pred_path: 预测视频路径
-            gt_path: 真值视频路径 (可选)
-            audio_path: 音频文件路径 (可选，已弃用)
+            pred_path: Predicted video path
+            gt_path: Ground truth video path (optional)
+            audio_path: Audio file path (optional, deprecated)
             
         Returns:
-            包含所有指标的字典
+            Dictionary containing all metrics
         """
         
-        # 初始化指标字典
+        # Initialize metrics dictionary
         metrics = {
             'video_path': pred_path,
             'has_ground_truth': gt_path is not None and os.path.exists(gt_path) if gt_path else False,
-            'has_audio': False,  # 不再需要外部音频文件
+            'has_audio': False,  # No longer need external audio files
             'vbench_enabled': self.vbench_available,
             
-            # 基本信息（不需要ground truth）
+            # Basic info (no ground truth needed)
             'frame_count': 0,
             'width': 0,
             'height': 0,
             'fps': 0.0,
             'duration_seconds': 0.0,
             
-            # 图像统计信息（不需要ground truth）
+            # Image statistics (no ground truth needed)
             'mean_brightness': 0.0,
             'mean_contrast': 0.0,
             'mean_saturation': 0.0,
             'sharpness_score': 0.0,
             
-            # 人脸检测统计（不需要ground truth）
-            'face_detection_rate': 0.0,  # 检测到人脸的帧比例
-            'avg_face_size': 0.0,        # 平均人脸大小
-            'face_stability': 0.0,       # 人脸位置稳定性
+            # Face detection statistics (no ground truth needed)
+            'face_detection_rate': 0.0,  # Proportion of frames with detected faces
+            'avg_face_size': 0.0,        # Average face size
+            'face_stability': 0.0,       # Face position stability
             
-            # 运动分析（不需要ground truth）
-            'motion_intensity': 0.0,     # 运动强度
-            'frame_difference': 0.0,     # 平均帧间差异
+            # Motion analysis (no ground truth needed)
+            'motion_intensity': 0.0,     # Motion intensity
+            'frame_difference': 0.0,     # Average frame difference
             
-            # 需要ground truth的指标（只计算人脸区域）
-            'face_psnr': None,        # 人脸区域PSNR
-            'face_ssim': None,        # 人脸区域SSIM  
-            'face_lpips': None,       # 人脸区域LPIPS
+            # Metrics requiring ground truth (face region only)
+            'face_psnr': None,        # Face region PSNR
+            'face_ssim': None,        # Face region SSIM  
+            'face_lpips': None,       # Face region LPIPS
             
-            # 唇同步指标（使用LSE计算器，不需要外部音频）
-            'lse_distance': None,     # LSE距离分数
-            'lse_confidence': None,   # LSE置信度分数
+            # Lip sync metrics (using LSE calculator, no external audio needed)
+            'lse_distance': None,     # LSE distance score
+            'lse_confidence': None,   # LSE confidence score
             
-            # VBench指标（不需要ground truth）
-            'subject_consistency': None,     # 主体一致性
-            'background_consistency': None,  # 背景一致性
-            'motion_smoothness': None,       # 运动平滑性
-            'dynamic_degree': None,          # 动态程度
-            'aesthetic_quality': None,       # 美学质量
-            'imaging_quality': None,         # 成像质量
+            # VBench metrics (no ground truth needed)
+            'subject_consistency': None,     # Subject consistency
+            'background_consistency': None,  # Background consistency
+            'motion_smoothness': None,       # Motion smoothness
+            'dynamic_degree': None,          # Dynamic degree
+            'aesthetic_quality': None,       # Aesthetic quality
+            'imaging_quality': None,         # Imaging quality
             
             'error': None
         }
         
         try:
-            # 打开视频文件
+            # Open video file
             pred_cap = cv2.VideoCapture(pred_path)
             if not pred_cap.isOpened():
-                metrics['error'] = f"无法打开预测视频: {pred_path}"
+                metrics['error'] = f"Cannot open predicted video: {pred_path}"
                 return metrics
             
-            # 获取视频基本信息
+            # Get basic video information
             fps = pred_cap.get(cv2.CAP_PROP_FPS)
             width = int(pred_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(pred_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -221,28 +221,28 @@ class VideoMetricsCalculator:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 pred_frames.append(frame_rgb)
                 
-                # 计算图像统计信息
+                # Calculate image statistics
                 gray = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY)
                 
-                # 亮度（灰度均值）
+                # Brightness (grayscale mean)
                 brightness = np.mean(gray)
                 brightness_values.append(brightness)
                 
-                # 对比度（灰度标准差）
+                # Contrast (grayscale standard deviation)
                 contrast = np.std(gray)
                 contrast_values.append(contrast)
                 
-                # 饱和度（HSV空间的S通道均值）
+                # Saturation (HSV S channel mean)
                 hsv = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2HSV)
                 saturation = np.mean(hsv[:, :, 1])
                 saturation_values.append(saturation)
                 
-                # 清晰度（拉普拉斯方差）
+                # Sharpness (Laplacian variance)
                 laplacian = cv2.Laplacian(gray, cv2.CV_64F)
                 sharpness = laplacian.var()
                 sharpness_values.append(sharpness)
                 
-                # 人脸检测
+                # Face detection
                 if self.face_detection_available:
                     face_bbox = self.detect_face_bbox(frame_rgb)
                     if face_bbox is not None:
@@ -256,19 +256,19 @@ class VideoMetricsCalculator:
             metrics['frame_count'] = frame_count
             metrics['duration_seconds'] = frame_count / fps if fps > 0 else 0
             
-            # 计算不需要ground truth的指标
+            # Calculate metrics that don't require ground truth
             if brightness_values:
                 metrics['mean_brightness'] = np.mean(brightness_values)
                 metrics['mean_contrast'] = np.mean(contrast_values)
                 metrics['mean_saturation'] = np.mean(saturation_values)
                 metrics['sharpness_score'] = np.mean(sharpness_values)
             
-            # 人脸检测统计
+            # Face detection statistics
             if face_detections:
                 metrics['face_detection_rate'] = len(face_detections) / frame_count
                 metrics['avg_face_size'] = np.mean([fd['size'] for fd in face_detections])
                 
-                # 计算人脸位置稳定性（相邻帧人脸中心点距离的方差）
+                # Calculate face position stability (variance of center point distances between adjacent frames)
                 if len(face_detections) > 1:
                     centers = []
                     for fd in face_detections:
@@ -283,10 +283,10 @@ class VideoMetricsCalculator:
                                     (centers[i][1] - centers[i-1][1])**2)
                         distances.append(dist)
                     
-                    # 稳定性 = 1 / (1 + 平均距离)，值越大越稳定
+                    # Stability = 1 / (1 + average distance), higher value means more stable
                     metrics['face_stability'] = 1.0 / (1.0 + np.mean(distances)) if distances else 1.0
             
-            # 运动分析
+            # Motion analysis
             if len(pred_frames) > 1:
                 frame_diffs = []
                 for i in range(1, len(pred_frames)):
@@ -296,47 +296,47 @@ class VideoMetricsCalculator:
                 metrics['motion_intensity'] = np.std(frame_diffs) if frame_diffs else 0.0
                 metrics['frame_difference'] = np.mean(frame_diffs) if frame_diffs else 0.0
             
-            # 计算LSE分数（使用LSE计算器）
+            # Calculate LSE scores (using LSE calculator)
             if self.lse_available:
-                print(f"🎵 计算LSE分数 (使用LSE计算器)")
+                print(f"🎵 Calculating LSE scores (using LSE calculator)")
                 try:
                     lse_distance, lse_confidence = self.lse_calculator.calculate_single_video(pred_path, verbose=False)
                     metrics['lse_distance'] = lse_distance
                     metrics['lse_confidence'] = lse_confidence
                 except Exception as e:
-                    print(f"⚠️ LSE计算失败: {e}")
+                    print(f"⚠️ LSE calculation failed: {e}")
                     metrics['lse_distance'] = None
                     metrics['lse_confidence'] = None
             else:
-                print(f"⚠️ LSE计算器不可用，跳过LSE计算")
+                print(f"⚠️ LSE calculator not available, skipping LSE calculation")
             
-            # 计算VBench分数
+            # Calculate VBench scores
             if self.vbench_available:
-                print(f"🔥 计算VBench指标 (6个核心指标)")
+                print(f"🔥 Calculating VBench metrics (6 core metrics)")
                 try:
                     vbench_results = self.vbench_calculator.evaluate_videos([pred_path])
                     
-                    # 将VBench结果合并到metrics中
+                    # Merge VBench results into metrics
                     for metric_name in ['subject_consistency', 'background_consistency', 'motion_smoothness', 
                                       'dynamic_degree', 'aesthetic_quality', 'imaging_quality']:
                         if metric_name in vbench_results:
                             metrics[metric_name] = vbench_results[metric_name]
                             print(f"   ✅ {metric_name}: {metrics[metric_name]}")
                         else:
-                            print(f"   ❌ VBench结果中未找到: {metric_name}")
+                            print(f"   ❌ Not found in VBench results: {metric_name}")
                             metrics[metric_name] = None
                     
                 except Exception as e:
-                    print(f"⚠️ VBench计算失败: {e}")
+                    print(f"⚠️ VBench calculation failed: {e}")
                     for metric_name in ['subject_consistency', 'background_consistency', 'motion_smoothness', 
                                       'dynamic_degree', 'aesthetic_quality', 'imaging_quality']:
                         metrics[metric_name] = None
             else:
-                print(f"⚠️ VBench计算器不可用，跳过VBench计算")
+                print(f"⚠️ VBench calculator not available, skipping VBench calculation")
             
-            # 如果有真值视频，计算对比指标（只计算人脸区域）
+            # If ground truth video exists, calculate comparison metrics (face region only)
             if gt_path and os.path.exists(gt_path):
-                print(f"🔍 计算人脸区域对比指标 (与真值对比)")
+                print(f"🔍 Calculating face region comparison metrics (vs ground truth)")
                 gt_cap = cv2.VideoCapture(gt_path)
                 if gt_cap.isOpened():
                     gt_frames = []
@@ -348,7 +348,7 @@ class VideoMetricsCalculator:
                         gt_frames.append(frame_rgb)
                     gt_cap.release()
                     
-                    # 计算帧级别指标
+                    # Calculate frame-level metrics
                     frame_metrics_list = []
                     min_frames = min(len(pred_frames), len(gt_frames))
                     
@@ -358,26 +358,26 @@ class VideoMetricsCalculator:
                             frame_metrics_list.append(frame_metrics)
                     
                     if frame_metrics_list:
-                        # 计算平均值
+                        # Calculate average values
                         for key in ['face_psnr', 'face_ssim', 'face_lpips']:
                             values = [fm.get(key, 0.0) for fm in frame_metrics_list if fm.get(key, 0.0) > 0]
                             if values:
                                 metrics[key] = np.mean(values)
                 else:
-                    print(f"⚠️ 无法打开真值视频: {gt_path}")
+                    print(f"⚠️ Cannot open ground truth video: {gt_path}")
             else:
-                print(f"⚠️ 无真值视频，跳过对比指标计算")
+                print(f"⚠️ No ground truth video, skipping comparison metrics")
         
         except Exception as e:
             metrics['error'] = str(e)
-            print(f"计算视频指标时出错: {e}")
+            print(f"Error calculating video metrics: {e}")
         
         return metrics
     
     def calculate_frame_metrics(self, pred_frame: np.ndarray, gt_frame: np.ndarray) -> Dict[str, float]:
-        """计算单帧指标（只计算人脸区域）"""
+        """Calculate single frame metrics (face region only)"""
         
-        # 检测人脸区域
+        # Detect face region
         pred_face_bbox = self.detect_face_bbox(pred_frame)
         gt_face_bbox = self.detect_face_bbox(gt_frame)
         
@@ -387,31 +387,31 @@ class VideoMetricsCalculator:
             'face_lpips': 0.0
         }
         
-        # 如果两帧都检测到人脸，计算人脸区域指标
+        # If faces are detected in both frames, calculate face region metrics
         if pred_face_bbox is not None and gt_face_bbox is not None:
-            # 使用较大的bbox确保包含完整人脸
+            # Use the larger bounding box to ensure the full face is included
             x1 = min(pred_face_bbox[0], gt_face_bbox[0])
             y1 = min(pred_face_bbox[1], gt_face_bbox[1])
             x2 = max(pred_face_bbox[0] + pred_face_bbox[2], gt_face_bbox[0] + gt_face_bbox[2])
             y2 = max(pred_face_bbox[1] + pred_face_bbox[3], gt_face_bbox[1] + gt_face_bbox[3])
             
-            # 确保坐标在图像范围内
+            # Ensure coordinates are within image boundaries
             h, w = pred_frame.shape[:2]
             x1, y1 = max(0, x1), max(0, y1)
             x2, y2 = min(w, x2), min(h, y2)
             
-            if x2 > x1 and y2 > y1:  # 确保有效区域
+            if x2 > x1 and y2 > y1:  # Ensure a valid region
                 pred_face = pred_frame[y1:y2, x1:x2]
                 gt_face = gt_frame[y1:y2, x1:x2]
                 
-                # 计算人脸区域PSNR
+                # Calculate face region PSNR
                 try:
                     face_psnr = peak_signal_noise_ratio(gt_face, pred_face, data_range=255)
                     metrics['face_psnr'] = face_psnr
                 except:
                     metrics['face_psnr'] = 0.0
                 
-                # 计算人脸区域SSIM
+                # Calculate face region SSIM
                 try:
                     face_ssim = structural_similarity(
                         gt_face, pred_face, 
@@ -423,13 +423,13 @@ class VideoMetricsCalculator:
                 except:
                     metrics['face_ssim'] = 0.0
                 
-                # 计算人脸区域LPIPS
+                # Calculate face region LPIPS
                 try:
-                    # 转换为tensor格式 [1, C, H, W]
+                    # Convert to tensor format [1, C, H, W]
                     pred_tensor = torch.from_numpy(pred_face).permute(2, 0, 1).unsqueeze(0).float() / 255.0
                     gt_tensor = torch.from_numpy(gt_face).permute(2, 0, 1).unsqueeze(0).float() / 255.0
                     
-                    # 归一化到[-1, 1]
+                    # Normalize to [-1, 1]
                     pred_tensor = pred_tensor * 2.0 - 1.0
                     gt_tensor = gt_tensor * 2.0 - 1.0
                     
@@ -444,9 +444,9 @@ class VideoMetricsCalculator:
         return metrics
     
     def _initialize_face_detector(self) -> Optional[str]:
-        """初始化人脸检测器，按优先级尝试不同方法"""
+        """Initialize the face detector, trying different methods in order of priority."""
         
-        # 方法1: MediaPipe Face Detection (推荐)
+        # Method 1: MediaPipe Face Detection (recommended)
         try:
             import mediapipe as mp
             self.mp_face_detection = mp.solutions.face_detection
@@ -454,53 +454,53 @@ class VideoMetricsCalculator:
             self.face_detector_mp = self.mp_face_detection.FaceDetection(
                 model_selection=0, min_detection_confidence=0.5
             )
-            print("   🚀 使用MediaPipe人脸检测 (推荐)")
+            print("   🚀 Using MediaPipe face detection (recommended)")
             return "mediapipe"
         except ImportError:
-            print("   ⚠️ MediaPipe未安装，尝试其他方法...")
+            print("   ⚠️ MediaPipe not installed, trying other methods...")
         except Exception as e:
-            print(f"   ⚠️ MediaPipe初始化失败: {e}")
+            print(f"   ⚠️ MediaPipe initialization failed: {e}")
         
-        # 方法2: YOLOv8 Face Detection
+        # Method 2: YOLOv8 Face Detection
         try:
             from ultralytics import YOLO
-            # 尝试加载YOLOv8n-face模型（如果可用）
+            # Try to load YOLOv8n-face model (if available)
             self.yolo_model = YOLO('yolov8n-face.pt')
-            print("   ⚡ 使用YOLOv8人脸检测")
+            print("   ⚡ Using YOLOv8 face detection")
             return "yolov8"
         except ImportError:
-            print("   ⚠️ ultralytics未安装，尝试其他方法...")
+            print("   ⚠️ ultralytics not installed, trying other methods...")
         except Exception as e:
-            print(f"   ⚠️ YOLOv8初始化失败: {e}")
+            print(f"   ⚠️ YOLOv8 initialization failed: {e}")
         
-        # 方法3: OpenCV DNN Face Detection
+        # Method 3: OpenCV DNN Face Detection
         try:
-            # 使用OpenCV DNN模块加载预训练的人脸检测模型
-            # 这里可以使用SSD MobileNet或ResNet模型
+            # Use OpenCV DNN module to load pre-trained face detection model
+            # Can use SSD MobileNet or ResNet models
             self.face_net = cv2.dnn.readNetFromTensorflow(
-                # 需要下载模型文件
+                # Need to download model files
                 'opencv_face_detector_uint8.pb',
                 'opencv_face_detector.pbtxt'
             )
-            print("   🔧 使用OpenCV DNN人脸检测")
+            print("   🔧 Using OpenCV DNN face detection")
             return "opencv_dnn"
         except Exception as e:
-            print(f"   ⚠️ OpenCV DNN初始化失败: {e}")
+            print(f"   ⚠️ OpenCV DNN initialization failed: {e}")
         
-        # 方法4: 传统Haar级联 (fallback)
+        # Method 4: Traditional Haar Cascade (fallback)
         try:
             self.face_cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
             )
-            print("   📰 使用传统Haar级联分类器 (fallback)")
+            print("   📰 Using traditional Haar cascade classifier (fallback)")
             return "haar_cascade"
         except Exception as e:
-            print(f"   ❌ Haar级联初始化失败: {e}")
+            print(f"   ❌ Haar cascade initialization failed: {e}")
         
         return None
     
     def detect_face_bbox(self, frame: np.ndarray) -> Optional[Tuple[int, int, int, int]]:
-        """检测人脸边界框 - 支持多种现代检测器"""
+        """Detect face bounding box - supports multiple modern detectors."""
         if not self.face_detection_available:
             return None
         
@@ -516,28 +516,28 @@ class VideoMetricsCalculator:
             elif self.face_detection_method == "haar_cascade":
                 return self._detect_face_haar_cascade(frame, h, w)
         except Exception as e:
-            print(f"⚠️ 人脸检测失败 ({self.face_detection_method}): {e}")
+            print(f"⚠️ Face detection failed ({self.face_detection_method}): {e}")
             return None
         
         return None
     
     def _detect_face_mediapipe(self, frame: np.ndarray, h: int, w: int) -> Optional[Tuple[int, int, int, int]]:
-        """使用MediaPipe检测人脸"""
-        # frame已经是RGB格式，不需要转换
+        """Detect face using MediaPipe."""
+        # frame is already in RGB format, no conversion needed
         results = self.face_detector_mp.process(frame)
         
         if results.detections:
-            # 获取置信度最高的人脸
+            # Get the face with the highest confidence score
             best_detection = max(results.detections, key=lambda d: d.score[0])
             bbox = best_detection.location_data.relative_bounding_box
             
-            # 转换为绝对坐标
+            # Convert to absolute coordinates
             x = int(bbox.xmin * w)
             y = int(bbox.ymin * h)
             width = int(bbox.width * w)
             height = int(bbox.height * h)
             
-            # 确保坐标在图像范围内
+            # Ensure coordinates are within image boundaries
             x = max(0, min(x, w - 1))
             y = max(0, min(y, h - 1))
             width = max(1, min(width, w - x))
@@ -548,20 +548,20 @@ class VideoMetricsCalculator:
         return None
     
     def _detect_face_yolov8(self, frame: np.ndarray, h: int, w: int) -> Optional[Tuple[int, int, int, int]]:
-        """使用YOLOv8检测人脸"""
+        """Detect face using YOLOv8."""
         results = self.yolo_model(frame, verbose=False)
         
         if len(results) > 0 and len(results[0].boxes) > 0:
-            # 获取置信度最高的检测结果
+            # Get the detection result with the highest confidence
             boxes = results[0].boxes
             confidences = boxes.conf.cpu().numpy()
             best_idx = np.argmax(confidences)
             
-            # 获取边界框坐标 (x1, y1, x2, y2)
+            # Get bounding box coordinates (x1, y1, x2, y2)
             box = boxes.xyxy[best_idx].cpu().numpy()
             x1, y1, x2, y2 = box
             
-            # 转换为 (x, y, w, h) 格式
+            # Convert to (x, y, w, h) format
             x = int(x1)
             y = int(y1)
             width = int(x2 - x1)
@@ -572,7 +572,7 @@ class VideoMetricsCalculator:
         return None
     
     def _detect_face_opencv_dnn(self, frame: np.ndarray, h: int, w: int) -> Optional[Tuple[int, int, int, int]]:
-        """使用OpenCV DNN检测人脸"""
+        """Detect face using OpenCV DNN."""
         blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), [104, 117, 123])
         self.face_net.setInput(blob)
         detections = self.face_net.forward()
@@ -582,7 +582,7 @@ class VideoMetricsCalculator:
         
         for i in range(detections.shape[2]):
             confidence = detections[0, 0, i, 2]
-            if confidence > 0.5:  # 置信度阈值
+            if confidence > 0.5:  # confidence threshold
                 box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                 x1, y1, x2, y2 = box.astype(int)
                 
@@ -593,12 +593,12 @@ class VideoMetricsCalculator:
         return best_box
     
     def _detect_face_haar_cascade(self, frame: np.ndarray, h: int, w: int) -> Optional[Tuple[int, int, int, int]]:
-        """使用传统Haar级联检测人脸"""
+        """Detect face using traditional Haar cascade."""
         gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
         
         if len(faces) > 0:
-            # 返回最大的人脸
+            # Return the largest face
             areas = [face_w * face_h for (x, y, face_w, face_h) in faces]
             max_idx = np.argmax(areas)
             return tuple(faces[max_idx])
@@ -610,34 +610,34 @@ class VideoMetricsCalculator:
                                gt_dir: Optional[str] = None,
                                pattern: str = "*.mp4") -> List[Dict[str, Any]]:
         """
-        批量计算视频指标
+        Batch calculate video metrics.
         
         Args:
-            pred_dir: 预测视频目录
-            gt_dir: 真值视频目录 (可选)
-            pattern: 文件匹配模式
+            pred_dir: Directory of predicted videos.
+            gt_dir: Directory of ground truth videos (optional).
+            pattern: File matching pattern.
             
         Returns:
-            指标结果列表
+            A list of metric results.
         """
         
-        # 获取预测视频文件列表
+        # Get list of predicted video files
         pred_files = sorted(glob.glob(os.path.join(pred_dir, pattern)))
         if not pred_files:
-            print(f"⚠️ 在 {pred_dir} 中没有找到匹配 {pattern} 的文件")
+            print(f"⚠️ No files matching {pattern} found in {pred_dir}")
             return []
         
-        print(f"🔍 找到 {len(pred_files)} 个视频文件")
+        print(f"🔍 Found {len(pred_files)} video files")
         
         results = []
         
-        for pred_file in tqdm(pred_files, desc="计算指标"):
+        for pred_file in tqdm(pred_files, desc="Calculating Metrics"):
             pred_name = os.path.basename(pred_file)
             
-            # 查找对应的真值视频
+            # Find the corresponding ground truth video
             gt_file = None
             if gt_dir:
-                # 尝试几种可能的命名方式
+                # Try several possible naming conventions
                 possible_names = [
                     pred_name,
                     pred_name.replace('_ta2v', ''),
@@ -651,20 +651,20 @@ class VideoMetricsCalculator:
                         gt_file = gt_path
                         break
             
-            # 计算指标
+            # Calculate metrics
             metrics = self.calculate_video_metrics(pred_file, gt_file)
             results.append(metrics)
         
         return results
     
     def save_results(self, results: List[Dict[str, Any]], output_path: str):
-        """保存结果到JSON文件，包含平均值统计"""
+        """Save results to a JSON file, including average statistics."""
         
-        # 计算平均值
+        # Calculate averages
         if results:
             average_metrics = self._calculate_average_metrics(results)
             
-            # 创建包含平均值的完整结果
+            # Create the full result object including averages
             output_data = {
                 "summary": {
                     "total_videos": len(results),
@@ -685,11 +685,11 @@ class VideoMetricsCalculator:
         
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
-        print(f"✅ 结果已保存到: {output_path}")
+        print(f"✅ Results saved to: {output_path}")
         
-        # 打印平均值摘要
+        # Print average summary
         if results and average_metrics:
-            print(f"\n📊 平均值摘要:")
+            print(f"\n📊 Average Summary:")
             for category, metrics in average_metrics.items():
                 if metrics:
                     print(f"  {category}:")
@@ -700,21 +700,21 @@ class VideoMetricsCalculator:
                             print(f"    {metric}: {value}")
     
     def _calculate_average_metrics(self, results: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
-        """计算所有指标的平均值"""
+        """Calculate the average of all metrics."""
         
-        # 定义指标分组
+        # Define metric groups
         metric_groups = {
-            "基本信息": ['frame_count', 'width', 'height', 'fps', 'duration_seconds'],
-            "图像统计": ['mean_brightness', 'mean_contrast', 'mean_saturation', 'sharpness_score'],
-            "人脸分析": ['face_detection_rate', 'avg_face_size', 'face_stability'],
-            "运动分析": ['motion_intensity', 'frame_difference'],
-            "LSE指标": ['lse_distance', 'lse_confidence'],
-            "VBench指标": ['subject_consistency', 'background_consistency', 'motion_smoothness',
+            "Basic Information": ['frame_count', 'width', 'height', 'fps', 'duration_seconds'],
+            "Image Statistics": ['mean_brightness', 'mean_contrast', 'mean_saturation', 'sharpness_score'],
+            "Face Analysis": ['face_detection_rate', 'avg_face_size', 'face_stability'],
+            "Motion Analysis": ['motion_intensity', 'frame_difference'],
+            "LSE Metrics": ['lse_distance', 'lse_confidence'],
+            "VBench Metrics": ['subject_consistency', 'background_consistency', 'motion_smoothness',
                          'dynamic_degree', 'aesthetic_quality', 'imaging_quality'],
-            "对比指标": ['face_psnr', 'face_ssim', 'face_lpips']
+            "Comparison Metrics": ['face_psnr', 'face_ssim', 'face_lpips']
         }
         
-        # 过滤成功的结果
+        # Filter successful results
         successful_results = [r for r in results if r.get('error') is None]
         
         if not successful_results:
@@ -726,14 +726,14 @@ class VideoMetricsCalculator:
             group_averages = {}
             
             for metric in metrics:
-                # 收集有效的数值
+                # Collect valid numerical values
                 values = []
                 for result in successful_results:
                     value = result.get(metric)
                     if value is not None and isinstance(value, (int, float)) and not np.isnan(value):
                         values.append(value)
                 
-                # 计算平均值
+                # Calculate the average
                 if values:
                     group_averages[metric] = np.mean(values)
             
@@ -743,24 +743,24 @@ class VideoMetricsCalculator:
         return average_metrics
     
     def print_summary_stats(self, results: List[Dict[str, Any]]):
-        """打印汇总统计信息"""
+        """Print summary statistics."""
         
         if not results:
-            print("❌ 没有结果可以统计")
+            print("❌ No results to summarize")
             return
         
-        print(f"\n📊 指标汇总统计 ({len(results)} 个视频)")
+        print(f"\n📊 Metrics Summary Statistics ({len(results)} videos)")
         print("=" * 60)
         
-        # 统计成功率
+        # Statistics on success rate
         total_videos = len(results)
         successful_videos = sum(1 for r in results if r.get('error') is None)
         
-        print(f"视频总数: {total_videos}")
-        print(f"成功处理: {successful_videos}")
-        print(f"成功率: {successful_videos/total_videos:.2%}")
+        print(f"Total videos: {total_videos}")
+        print(f"Successfully processed: {successful_videos}")
+        print(f"Success rate: {successful_videos/total_videos:.2%}")
         
-        # 统计各类指标
+        # Statistics on various metrics
         stats = {}
         
         metric_keys = ['face_psnr', 'face_ssim', 'face_lpips', 
@@ -779,90 +779,90 @@ class VideoMetricsCalculator:
                     'max': np.max(values)
                 }
         
-        # 打印统计信息
+        # Print statistics
         if stats:
-            print(f"\n📈 指标统计:")
+            print(f"\n📈 Metrics Statistics:")
             
-            # 分组显示
-            print(f"\n🔍 人脸对比指标:")
+            # Display by groups
+            print(f"\n🔍 Face Comparison Metrics:")
             for key in ['face_psnr', 'face_ssim', 'face_lpips']:
                 if key in stats:
                     stat = stats[key]
                     print(f"  {key}:")
-                    print(f"    样本数: {stat['count']}")
-                    print(f"    均值: {stat['mean']:.4f}")
-                    print(f"    标准差: {stat['std']:.4f}")
-                    print(f"    范围: [{stat['min']:.4f}, {stat['max']:.4f}]")
+                    print(f"    Count: {stat['count']}")
+                    print(f"    Mean: {stat['mean']:.4f}")
+                    print(f"    Std: {stat['std']:.4f}")
+                    print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
             
-            print(f"\n🎵 LSE指标:")
+            print(f"\n🎵 LSE Metrics:")
             for key in ['lse_distance', 'lse_confidence']:
                 if key in stats:
                     stat = stats[key]
                     print(f"  {key}:")
-                    print(f"    样本数: {stat['count']}")
-                    print(f"    均值: {stat['mean']:.4f}")
-                    print(f"    标准差: {stat['std']:.4f}")
-                    print(f"    范围: [{stat['min']:.4f}, {stat['max']:.4f}]")
+                    print(f"    Count: {stat['count']}")
+                    print(f"    Mean: {stat['mean']:.4f}")
+                    print(f"    Std: {stat['std']:.4f}")
+                    print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
             
-            print(f"\n🔥 VBench指标:")
+            print(f"\n🔥 VBench Metrics:")
             vbench_keys = ['subject_consistency', 'background_consistency', 'motion_smoothness',
                           'dynamic_degree', 'aesthetic_quality', 'imaging_quality']
             for key in vbench_keys:
                 if key in stats:
                     stat = stats[key]
                     print(f"  {key}:")
-                    print(f"    样本数: {stat['count']}")
-                    print(f"    均值: {stat['mean']:.4f}")
-                    print(f"    标准差: {stat['std']:.4f}")
-                    print(f"    范围: [{stat['min']:.4f}, {stat['max']:.4f}]")
+                    print(f"    Count: {stat['count']}")
+                    print(f"    Mean: {stat['mean']:.4f}")
+                    print(f"    Std: {stat['std']:.4f}")
+                    print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
 
     def cleanup(self):
-        """清理资源"""
+        """Clean up resources"""
         if hasattr(self, 'vbench_calculator') and self.vbench_calculator:
-            print("🗑️ 清理VBench资源...")
+            print("🗑️ Cleaning up VBench resources...")
             try:
                 self.vbench_calculator.cleanup()
             except Exception as e:
-                print(f"⚠️ 清理VBench资源失败: {e}")
+                print(f"⚠️ Failed to clean up VBench resources: {e}")
 
 
 def main():
-    """主函数"""
-    parser = argparse.ArgumentParser(description="综合视频指标计算器")
-    parser.add_argument("--pred_dir", type=str, required=True, help="预测视频目录")
-    parser.add_argument("--gt_dir", type=str, help="真值视频目录")
-    parser.add_argument("--output", type=str, default="metrics_results.json", help="输出JSON文件")
-    parser.add_argument("--pattern", type=str, default="*.mp4", help="文件匹配模式")
-    parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"], help="计算设备")
-    parser.add_argument("--vbench", action="store_true", help="启用VBench指标计算")
+    """Main function"""
+    parser = argparse.ArgumentParser(description="Comprehensive Video Metrics Calculator")
+    parser.add_argument("--pred_dir", type=str, required=True, help="Predicted video directory")
+    parser.add_argument("--gt_dir", type=str, help="Ground truth video directory")
+    parser.add_argument("--output", type=str, default="metrics_results.json", help="Output JSON file")
+    parser.add_argument("--pattern", type=str, default="*.mp4", help="File matching pattern")
+    parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"], help="Computing device")
+    parser.add_argument("--vbench", action="store_true", help="Enable VBench metrics calculation")
     
     args = parser.parse_args()
     
-    print("🚀 启动综合视频指标计算器")
+    print("🚀 Starting Comprehensive Video Metrics Calculator")
     
-    # 创建计算器
+    # Create calculator
     calculator = VideoMetricsCalculator(device=args.device, enable_vbench=args.vbench)
     
     try:
-        # 批量计算指标
+        # Batch calculate metrics
         results = calculator.calculate_batch_metrics(
             pred_dir=args.pred_dir,
             gt_dir=args.gt_dir,
             pattern=args.pattern
         )
         
-        # 保存结果
+        # Save results
         calculator.save_results(results, args.output)
         
-        # 打印汇总统计
+        # Print summary statistics
         calculator.print_summary_stats(results)
         
-        print("\n🎉 计算完成!")
+        print("\n🎉 Calculation completed!")
         
     finally:
-        # 清理资源
+        # Clean up resources
         calculator.cleanup()
 
 
 if __name__ == "__main__":
-    main() 
+    main()
