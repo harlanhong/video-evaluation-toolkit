@@ -21,6 +21,12 @@ scenedetect>=0.6.0
 # Image quality metrics
 lpips>=0.1.4
 
+# CLIP for similarity calculation
+git+https://github.com/openai/CLIP.git
+
+# FVD calculation dependencies
+# Note: I3D features extracted using torchvision r3d models or custom implementation
+
 # VBench video generation quality assessment
 # Note: VBench should be installed separately in appropriate environment
 # conda activate vbench (recommended)
@@ -55,7 +61,16 @@ PyYAML>=6.0
 
 # Note for VBench users:
 # If you already have a VBench conda environment, activate it and run:
-# pip install lpips python_speech_features scenedetect mediapipe
+# pip install lpips python_speech_features scenedetect mediapipe git+https://github.com/openai/CLIP.git
 # 
 # For new installation, use:
-# conda env create -f environment.yaml 
+# conda env create -f environment.yaml
+#
+# Advanced metrics installation:
+# - CLIP similarity: Included above with CLIP installation
+# - FVD calculation: Uses torchvision (included with torch)
+# - GIM matching: Uses custom implementation (no additional dependencies)
+#
+# Full installation for all features:
+# pip install -r requirements.txt
+# pip install mediapipe  # For improved face detection 

@@ -21,7 +21,7 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
   - **Motion Analysis**: Motion intensity, inter-frame difference.
   - **Image Quality**: PSNR, SSIM, LPIPS for the face region (requires ground truth).
 
-### ✅ VBench Metrics Integration (New)
+### ✅ VBench Metrics Integration
 
   - **Subject Consistency**: Consistency of the main subject in the video.
   - **Background Consistency**: Stability of the background content.
@@ -30,6 +30,13 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
   - **Aesthetic Quality**: The aesthetic score of the video.
   - **Imaging Quality**: Image quality assessment.
   - **Flexible Enablement**: VBench calculation can be selectively enabled to balance performance.
+
+### ✅ Advanced Synchronization Metrics (New)
+
+  - **CLIP-V Similarity**: Calculate CLIP similarity between source and target frames at the same timestamp.
+  - **FVD-V Score**: Fréchet Video Distance for video generation quality assessment (from SV4D).
+  - **GIM Matching**: State-of-the-art image matching to calculate matching pixels with confidence > threshold (Mat. Pix.).
+  - **Modular Design**: Each metric can be independently enabled for flexible evaluation.
 
 ## 📁 Directory Structure
 
@@ -50,11 +57,15 @@ evaluation/
 ├── lse_calculator.py          # LSE calculator
 ├── metrics_calculator.py      # Comprehensive metrics calculator (VBench integrated)
 ├── vbench_official_final.py   # VBench direct integration module
+├── clip_similarity_calculator.py # CLIP similarity calculator
+├── fvd_calculator.py          # FVD score calculator
+├── gim_matching_calculator.py # GIM image matching calculator
 ├── requirements.txt           # pip dependency configuration
 ├── environment.yaml           # conda environment configuration
 ├── verify_installation.py     # Installation verification script
 ├── examples/
-│   └── example_usage.py       # Usage example
+│   ├── usage_example.py       # Basic usage example
+│   └── advanced_metrics_example.py # Advanced metrics usage example
 └── README.md                  # This document
 ```
 

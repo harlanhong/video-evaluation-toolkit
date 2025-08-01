@@ -73,20 +73,61 @@ except ImportError:
     sys.path.append(current_dir)
     from vbench_official_final import VBenchDirect
 
+# CLIP similarity calculator
+try:
+    from .clip_similarity_calculator import CLIPSimilarityCalculator
+except ImportError:
+    import sys
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(current_dir)
+    from clip_similarity_calculator import CLIPSimilarityCalculator
+
+# FVD calculator
+try:
+    from .fvd_calculator import FVDCalculator
+except ImportError:
+    import sys
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(current_dir)
+    from fvd_calculator import FVDCalculator
+
+# GIM matching calculator
+try:
+    from .gim_matching_calculator import GIMMatchingCalculator
+except ImportError:
+    import sys
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(current_dir)
+    from gim_matching_calculator import GIMMatchingCalculator
+
 
 class VideoMetricsCalculator:
     """Comprehensive Video Metrics Calculator"""
     
-    def __init__(self, device: str = "cuda", enable_vbench: bool = False):
+    def __init__(self, 
+                 device: str = "cuda", 
+                 enable_vbench: bool = False,
+                 enable_clip_similarity: bool = False,
+                 enable_fvd: bool = False,
+                 enable_gim_matching: bool = False):
         """
         Initialize metrics calculator
         
         Args:
             device: Computing device ("cuda" or "cpu")
             enable_vbench: Whether to enable VBench metrics calculation
+            enable_clip_similarity: Whether to enable CLIP similarity calculation
+            enable_fvd: Whether to enable FVD calculation
+            enable_gim_matching: Whether to enable GIM image matching calculation
         """
         self.device = device if torch.cuda.is_available() else "cpu"
         self.enable_vbench = enable_vbench
+        self.enable_clip_similarity = enable_clip_similarity
+        self.enable_fvd = enable_fvd
+        self.enable_gim_matching = enable_gim_matching
         
         # Initialize LPIPS model
         print("🔄 Initializing LPIPS model...")
@@ -124,7 +165,54 @@ class VideoMetricsCalculator:
         else:
             self.vbench_available = False
         
-        print(f"🚀 Metrics calculator initialization completed (device: {self.device}, VBench: {self.vbench_available})")
+        # Initialize CLIP similarity calculator
+        if self.enable_clip_similarity:
+            print("🔄 Initializing CLIP similarity calculator...")
+            try:
+                self.clip_calculator = CLIPSimilarityCalculator(device=self.device)
+                self.clip_available = True
+                print("✅ CLIP similarity calculator initialized successfully")
+            except Exception as e:
+                print(f"⚠️ CLIP similarity calculator initialization failed: {e}")
+                self.clip_available = False
+        else:
+            self.clip_available = False
+        
+        # Initialize FVD calculator
+        if self.enable_fvd:
+            print("🔄 Initializing FVD calculator...")
+            try:
+                self.fvd_calculator = FVDCalculator(device=self.device)
+                self.fvd_available = True
+                print("✅ FVD calculator initialized successfully")
+            except Exception as e:
+                print(f"⚠️ FVD calculator initialization failed: {e}")
+                self.fvd_available = False
+        else:
+            self.fvd_available = False
+        
+        # Initialize GIM matching calculator
+        if self.enable_gim_matching:
+            print("🔄 Initializing GIM matching calculator...")
+            try:
+                self.gim_calculator = GIMMatchingCalculator(device=self.device)
+                self.gim_available = True
+                print("✅ GIM matching calculator initialized successfully")
+            except Exception as e:
+                print(f"⚠️ GIM matching calculator initialization failed: {e}")
+                self.gim_available = False
+        else:
+            self.gim_available = False
+        
+        # Summary of initialization
+        enabled_modules = []
+        if self.vbench_available: enabled_modules.append("VBench")
+        if self.clip_available: enabled_modules.append("CLIP")
+        if self.fvd_available: enabled_modules.append("FVD")
+        if self.gim_available: enabled_modules.append("GIM")
+        
+        modules_str = ", ".join(enabled_modules) if enabled_modules else "Basic metrics only"
+        print(f"🚀 Metrics calculator initialization completed (device: {self.device}, modules: {modules_str})")
     
     def calculate_video_metrics(self, 
                                pred_path: str, 
@@ -187,6 +275,17 @@ class VideoMetricsCalculator:
             'dynamic_degree': None,          # Dynamic degree
             'aesthetic_quality': None,       # Aesthetic quality
             'imaging_quality': None,         # Imaging quality
+            
+            # CLIP similarity metrics (requires ground truth)
+            'clip_similarity': None,         # CLIP-V similarity score
+            'clip_similarity_std': None,     # Standard deviation of CLIP similarities
+            
+            # FVD metrics (requires ground truth or dataset)
+            'fvd_score': None,              # FVD-V score
+            
+            # GIM matching metrics (requires ground truth)
+            'gim_matching_pixels': None,     # Total matching pixels (Mat. Pix.)
+            'gim_avg_matching': None,        # Average matching pixels per frame
             
             'error': None
         }
@@ -334,9 +433,9 @@ class VideoMetricsCalculator:
             else:
                 print(f"⚠️ VBench calculator not available, skipping VBench calculation")
             
-            # If ground truth video exists, calculate comparison metrics (face region only)
+            # If ground truth video exists, calculate comparison metrics
             if gt_path and os.path.exists(gt_path):
-                print(f"🔍 Calculating face region comparison metrics (vs ground truth)")
+                print(f"🔍 Calculating comparison metrics (vs ground truth)")
                 gt_cap = cv2.VideoCapture(gt_path)
                 if gt_cap.isOpened():
                     gt_frames = []
@@ -348,7 +447,7 @@ class VideoMetricsCalculator:
                         gt_frames.append(frame_rgb)
                     gt_cap.release()
                     
-                    # Calculate frame-level metrics
+                    # Calculate face region metrics
                     frame_metrics_list = []
                     min_frames = min(len(pred_frames), len(gt_frames))
                     
@@ -358,15 +457,62 @@ class VideoMetricsCalculator:
                             frame_metrics_list.append(frame_metrics)
                     
                     if frame_metrics_list:
-                        # Calculate average values
+                        # Calculate average values for face metrics
                         for key in ['face_psnr', 'face_ssim', 'face_lpips']:
                             values = [fm.get(key, 0.0) for fm in frame_metrics_list if fm.get(key, 0.0) > 0]
                             if values:
                                 metrics[key] = np.mean(values)
+                    
+                    # Calculate CLIP similarity if enabled
+                    if self.clip_available:
+                        print(f"🎨 Calculating CLIP similarity")
+                        try:
+                            clip_results = self.clip_calculator.calculate_video_similarity(
+                                pred_path, gt_path, verbose=False
+                            )
+                            if clip_results.get('clip_similarity') is not None:
+                                metrics['clip_similarity'] = clip_results['clip_similarity']
+                                metrics['clip_similarity_std'] = clip_results.get('clip_similarity_std', None)
+                                print(f"   ✅ CLIP similarity: {metrics['clip_similarity']:.4f}")
+                            else:
+                                print(f"   ❌ CLIP similarity calculation failed")
+                        except Exception as e:
+                            print(f"   ⚠️ CLIP similarity calculation failed: {e}")
+                    
+                    # Calculate GIM matching if enabled
+                    if self.gim_available:
+                        print(f"🔍 Calculating GIM matching pixels")
+                        try:
+                            gim_results = self.gim_calculator.calculate_video_matching(
+                                pred_path, gt_path, verbose=False
+                            )
+                            if gim_results.get('total_matching_pixels') is not None:
+                                metrics['gim_matching_pixels'] = gim_results['total_matching_pixels']
+                                metrics['gim_avg_matching'] = gim_results.get('avg_matching_pixels', None)
+                                print(f"   ✅ GIM matching pixels: {metrics['gim_matching_pixels']}")
+                            else:
+                                print(f"   ❌ GIM matching calculation failed")
+                        except Exception as e:
+                            print(f"   ⚠️ GIM matching calculation failed: {e}")
+                    
                 else:
                     print(f"⚠️ Cannot open ground truth video: {gt_path}")
             else:
                 print(f"⚠️ No ground truth video, skipping comparison metrics")
+            
+            # Calculate FVD if enabled (can work with single video against dataset)
+            if self.fvd_available:
+                print(f"📊 Calculating FVD score")
+                try:
+                    # For single video FVD, we would typically need a reference dataset
+                    # This is a placeholder - in practice, you'd provide real/generated video sets
+                    print(f"   ⚠️ FVD calculation requires dataset comparison (placeholder)")
+                    # fvd_results = self.fvd_calculator.calculate_fvd([gt_path], [pred_path], verbose=False)
+                    # if fvd_results.get('fvd_score') is not None:
+                    #     metrics['fvd_score'] = fvd_results['fvd_score']
+                    #     print(f"   ✅ FVD score: {metrics['fvd_score']:.4f}")
+                except Exception as e:
+                    print(f"   ⚠️ FVD calculation failed: {e}")
         
         except Exception as e:
             metrics['error'] = str(e)
@@ -815,6 +961,39 @@ class VideoMetricsCalculator:
                     print(f"    Mean: {stat['mean']:.4f}")
                     print(f"    Std: {stat['std']:.4f}")
                     print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
+            
+            print(f"\n🎨 CLIP Similarity Metrics:")
+            clip_keys = ['clip_similarity', 'clip_similarity_std']
+            for key in clip_keys:
+                if key in stats:
+                    stat = stats[key]
+                    print(f"  {key}:")
+                    print(f"    Count: {stat['count']}")
+                    print(f"    Mean: {stat['mean']:.4f}")
+                    print(f"    Std: {stat['std']:.4f}")
+                    print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
+            
+            print(f"\n📊 FVD Metrics:")
+            fvd_keys = ['fvd_score']
+            for key in fvd_keys:
+                if key in stats:
+                    stat = stats[key]
+                    print(f"  {key}:")
+                    print(f"    Count: {stat['count']}")
+                    print(f"    Mean: {stat['mean']:.4f}")
+                    print(f"    Std: {stat['std']:.4f}")
+                    print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
+            
+            print(f"\n🔍 GIM Matching Metrics:")
+            gim_keys = ['gim_matching_pixels', 'gim_avg_matching']
+            for key in gim_keys:
+                if key in stats:
+                    stat = stats[key]
+                    print(f"  {key}:")
+                    print(f"    Count: {stat['count']}")
+                    print(f"    Mean: {stat['mean']:.4f}")
+                    print(f"    Std: {stat['std']:.4f}")
+                    print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
 
     def cleanup(self):
         """Clean up resources"""
@@ -835,13 +1014,29 @@ def main():
     parser.add_argument("--pattern", type=str, default="*.mp4", help="File matching pattern")
     parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"], help="Computing device")
     parser.add_argument("--vbench", action="store_true", help="Enable VBench metrics calculation")
+    parser.add_argument("--clip", action="store_true", help="Enable CLIP similarity calculation")
+    parser.add_argument("--fvd", action="store_true", help="Enable FVD calculation")
+    parser.add_argument("--gim", action="store_true", help="Enable GIM matching calculation")
+    parser.add_argument("--all_advanced", action="store_true", help="Enable all advanced metrics (CLIP, FVD, GIM)")
     
     args = parser.parse_args()
+    
+    # Handle --all_advanced flag
+    if args.all_advanced:
+        args.clip = True
+        args.fvd = True
+        args.gim = True
     
     print("🚀 Starting Comprehensive Video Metrics Calculator")
     
     # Create calculator
-    calculator = VideoMetricsCalculator(device=args.device, enable_vbench=args.vbench)
+    calculator = VideoMetricsCalculator(
+        device=args.device, 
+        enable_vbench=args.vbench,
+        enable_clip_similarity=args.clip,
+        enable_fvd=args.fvd,
+        enable_gim_matching=args.gim
+    )
     
     try:
         # Batch calculate metrics

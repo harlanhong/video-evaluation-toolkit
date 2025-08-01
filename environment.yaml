@@ -45,6 +45,9 @@ dependencies:
     # Image quality metrics
     - lpips>=0.1.4
     
+    # CLIP for similarity calculation
+    - git+https://github.com/openai/CLIP.git
+    
     # VBench video generation quality assessment
     # Uncomment the following line if you want to install VBench via pip
     # Note: It's recommended to use existing VBench environment if available
@@ -62,12 +65,21 @@ dependencies:
 # Installation Notes:
 # 1. If you already have a VBench conda environment, use that instead:
 #    conda activate vbench
-#    pip install lpips python_speech_features scenedetect mediapipe
+#    pip install lpips python_speech_features scenedetect mediapipe git+https://github.com/openai/CLIP.git
 #
-# 2. This environment provides all dependencies for LSE calculation and basic metrics
+# 2. This environment provides all dependencies for:
+#    - LSE calculation and basic metrics
+#    - CLIP similarity calculation
+#    - FVD calculation (using torchvision)
+#    - GIM matching (custom implementation)
 #    For VBench integration, ensure VBench is available in your environment
 #
 # 3. Advanced face detection: MediaPipe is included by default for better performance
 #    You can also install ultralytics for YOLOv8-based face detection
 #
-# 4. GPU support: Ensure CUDA-compatible PyTorch is installed for better performance 
+# 4. GPU support: Ensure CUDA-compatible PyTorch is installed for better performance
+#
+# 5. New advanced metrics:
+#    - CLIP-V: Calculate CLIP similarity between source and target frames
+#    - FVD-V: Fréchet Video Distance for video quality assessment
+#    - GIM: Graph Image Matching for synchronization evaluation 
