@@ -1,0 +1,249 @@
+# Video Evaluation Toolkit with VBench Integration - .gitignore
+# Copyright (c) 2025 Fating Hong <fatinghong@gmail.com>
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Video Evaluation Toolkit Specific
+# Model files (large binary files - users should download separately)
+models/*.model
+models/*.pth
+models/*.pb
+models/*.pbtxt
+models/*.onnx
+models/*.tflite
+
+# Temporary/Cache directories
+cache/
+temp/
+tmp/
+.cache/
+
+# Test outputs and temporary results
+*_results.json
+*_output.json
+test_*.json
+temp_*.json
+
+# VBench temporary files
+vbench_output_*/
+vbench_cache/
+/tmp/vbench_*
+
+# LSE temporary files
+lse_temp/
+syncnet_temp/
+
+# Video files (examples and test files)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.wmv
+*.webm
+
+# Audio files
+*.wav
+*.mp3
+*.aac
+*.flac
+
+# Image files (large test images)
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.gif
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Performance profiling
+*.prof
+
+# Local configuration files
+config_local.py
+settings_local.py
+
+# Docker
+.dockerignore
+Dockerfile.local
+
+# System files
+.fuse_hidden*
+
+# Editor temp files
+.*.swp
+.*.swo
+
+# Python virtual environments
+pyvenv.cfg
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# Vim
+*.swp
+*.swo
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# OS generated files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db 

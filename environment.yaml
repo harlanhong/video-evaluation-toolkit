@@ -1,0 +1,73 @@
+name: video-evaluation
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python version
+  - python>=3.8,<3.12
+  
+  # Core ML/DL frameworks
+  - pytorch>=2.0.0
+  - torchvision>=0.15.0
+  - numpy>=1.21.0
+  
+  # Computer vision and image processing
+  - opencv>=4.5.0
+  - scikit-image>=0.19.0
+  
+  # Audio processing (for LSE calculator)
+  - librosa>=0.9.0
+  - scipy>=1.8.0
+  
+  # Video processing
+  - ffmpeg>=4.3.0
+  
+  # Utilities
+  - tqdm>=4.62.0
+  - pillow>=8.3.0
+  - pyyaml>=6.0
+  
+  # Optional: for better performance
+  - numba>=0.56.0
+  
+  # Pip dependencies (not available via conda)
+  - pip
+  - pip:
+    # Audio feature extraction
+    - python_speech_features>=0.6.0
+    
+    # Video processing tools
+    - ffmpeg-python>=0.2.0
+    - scenedetect>=0.6.0
+    
+    # Image quality metrics
+    - lpips>=0.1.4
+    
+    # VBench video generation quality assessment
+    # Uncomment the following line if you want to install VBench via pip
+    # Note: It's recommended to use existing VBench environment if available
+    # - vbench
+    
+    # Advanced face detection (recommended for better performance)
+    # Uncomment ONE of the following options:
+    
+    # Option 1: MediaPipe (recommended - fast, accurate, lightweight)
+    - mediapipe>=0.10.0
+    
+    # Option 2: YOLOv8 for face detection (very fast, good accuracy)
+    # - ultralytics>=8.0.0
+
+# Installation Notes:
+# 1. If you already have a VBench conda environment, use that instead:
+#    conda activate vbench
+#    pip install lpips python_speech_features scenedetect mediapipe
+#
+# 2. This environment provides all dependencies for LSE calculation and basic metrics
+#    For VBench integration, ensure VBench is available in your environment
+#
+# 3. Advanced face detection: MediaPipe is included by default for better performance
+#    You can also install ultralytics for YOLOv8-based face detection
+#
+# 4. GPU support: Ensure CUDA-compatible PyTorch is installed for better performance 
