@@ -38,6 +38,17 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
   - **GIM Matching**: State-of-the-art image matching to calculate matching pixels with confidence > threshold (Mat. Pix.).
   - **Modular Design**: Each metric can be independently enabled for flexible evaluation.
 
+### ✅ Unified CLIP API (New)
+
+  - **Comprehensive Interface**: Single API for all CLIP-based video evaluation tasks.
+  - **Multiple CLIP Models**: Support for ViT-B/32, ViT-B/16, ViT-L/14, and more.
+  - **Video-to-Video Similarity**: Frame-by-frame CLIP similarity calculation.
+  - **Text-to-Video Similarity**: Semantic similarity between text descriptions and video content.
+  - **Feature Extraction**: Extract CLIP features from video frames for analysis.
+  - **Batch Processing**: Efficient processing of multiple video pairs.
+  - **Model Comparison**: Easy comparison between different CLIP models.
+  - **Legacy Compatibility**: Backward compatibility with existing code through wrapper classes.
+
 ## 📁 Directory Structure
 
 ```
@@ -57,7 +68,8 @@ evaluation/
 ├── lse_calculator.py          # LSE calculator
 ├── metrics_calculator.py      # Comprehensive metrics calculator (VBench integrated)
 ├── vbench_official_final.py   # VBench direct integration module
-├── clip_similarity_calculator.py # CLIP similarity calculator
+├── clip_api.py                # Unified CLIP API for all CLIP-based metrics
+├── clip_similarity_calculator.py # CLIP similarity calculator (legacy wrapper)
 ├── fvd_calculator.py          # FVD score calculator
 ├── gim_matching_calculator.py # GIM image matching calculator
 ├── requirements.txt           # pip dependency configuration
@@ -65,7 +77,8 @@ evaluation/
 ├── verify_installation.py     # Installation verification script
 ├── examples/
 │   ├── usage_example.py       # Basic usage example
-│   └── advanced_metrics_example.py # Advanced metrics usage example
+│   ├── advanced_metrics_example.py # Advanced metrics usage example
+│   └── clip_api_example.py    # Comprehensive CLIP API usage example
 └── README.md                  # This document
 ```
 
@@ -258,6 +271,70 @@ finally:
     calculator.cleanup()
 ```
 
+#### CLIP API Usage (New Unified Interface)
+
+```python
+from clip_api import CLIPVideoAPI
+
+# Initialize CLIP API
+clip_api = CLIPVideoAPI(model_name="ViT-B/32", device="cuda")
+
+# 1. Video-to-Video Similarity
+similarity_result = clip_api.calculate_video_similarity(
+    source_path="video1.mp4",
+    target_path="video2.mp4",
+    max_frames=50
+)
+print(f"CLIP Similarity: {similarity_result['clip_similarity']:.4f}")
+
+# 2. Text-to-Video Similarity
+text_result = clip_api.calculate_text_video_similarity(
+    video_path="video.mp4",
+    text_queries=["a person walking", "outdoor scene", "dancing"],
+    max_frames=30
+)
+print("Text similarities:", text_result['similarities'])
+
+# 3. Feature Extraction
+features_result = clip_api.extract_video_features("video.mp4", max_frames=20)
+print(f"Features shape: {features_result['features'].shape}")
+
+# 4. Batch Processing
+video_pairs = [("vid1.mp4", "ref1.mp4"), ("vid2.mp4", "ref2.mp4")]
+batch_results = clip_api.calculate_batch_video_similarity(video_pairs)
+
+# 5. Save results
+clip_api.save_results(similarity_result, "clip_results.json")
+```
+
+#### Advanced Metrics with CLIP Integration
+
+```python
+from metrics_calculator import VideoMetricsCalculator
+
+# Create calculator with advanced metrics enabled
+calculator = VideoMetricsCalculator(
+    enable_vbench=True,
+    enable_clip_similarity=True,
+    enable_gim_matching=True
+)
+
+try:
+    # Calculate all metrics including CLIP similarity
+    metrics = calculator.calculate_video_metrics(
+        pred_path="generated_video.mp4",
+        gt_path="reference_video.mp4"
+    )
+    
+    # Display results
+    print(f"VBench - Subject Consistency: {metrics['subject_consistency']}")
+    print(f"CLIP Similarity: {metrics['clip_similarity']:.4f}")
+    print(f"GIM Matching Pixels: {metrics['gim_matching_pixels']}")
+    
+finally:
+    calculator.cleanup()
+```
+
 #### Comparison with Ground Truth
 
 ```python
@@ -320,6 +397,51 @@ python metrics_calculator.py \
     --vbench \
     --output my_results.json \
     --pattern "*.avi"
+```
+
+#### Advanced Metrics (CLIP, FVD, GIM)
+
+```bash
+# Enable CLIP similarity calculation
+python metrics_calculator.py \
+    --pred_dir /path/to/videos \
+    --gt_dir /path/to/ground_truth \
+    --clip
+
+# Enable GIM matching
+python metrics_calculator.py \
+    --pred_dir /path/to/videos \
+    --gt_dir /path/to/ground_truth \
+    --gim
+
+# Enable all advanced metrics
+python metrics_calculator.py \
+    --pred_dir /path/to/videos \
+    --gt_dir /path/to/ground_truth \
+    --all_advanced --vbench
+```
+
+#### CLIP API Command-Line Usage
+
+```bash
+# Video-to-video similarity
+python clip_api.py \
+    --task video_similarity \
+    --source video1.mp4 \
+    --target video2.mp4 \
+    --model ViT-L/14
+
+# Text-to-video similarity
+python clip_api.py \
+    --task text_video \
+    --source video.mp4 \
+    --text "a person walking outdoors"
+
+# Feature extraction
+python clip_api.py \
+    --task extract_features \
+    --source video.mp4 \
+    --max_frames 30
 ```
 
 #### LSE Calculation for a Single Video

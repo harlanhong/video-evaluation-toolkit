@@ -73,15 +73,15 @@ except ImportError:
     sys.path.append(current_dir)
     from vbench_official_final import VBenchDirect
 
-# CLIP similarity calculator
+# CLIP API (unified CLIP interface)
 try:
-    from .clip_similarity_calculator import CLIPSimilarityCalculator
+    from .clip_api import CLIPVideoAPI
 except ImportError:
     import sys
     import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
     sys.path.append(current_dir)
-    from clip_similarity_calculator import CLIPSimilarityCalculator
+    from clip_api import CLIPVideoAPI
 
 # FVD calculator
 try:
@@ -165,15 +165,15 @@ class VideoMetricsCalculator:
         else:
             self.vbench_available = False
         
-        # Initialize CLIP similarity calculator
+        # Initialize CLIP API
         if self.enable_clip_similarity:
-            print("🔄 Initializing CLIP similarity calculator...")
+            print("🔄 Initializing CLIP API...")
             try:
-                self.clip_calculator = CLIPSimilarityCalculator(device=self.device)
+                self.clip_api = CLIPVideoAPI(device=self.device, model_name="ViT-B/32")
                 self.clip_available = True
-                print("✅ CLIP similarity calculator initialized successfully")
+                print("✅ CLIP API initialized successfully")
             except Exception as e:
-                print(f"⚠️ CLIP similarity calculator initialization failed: {e}")
+                print(f"⚠️ CLIP API initialization failed: {e}")
                 self.clip_available = False
         else:
             self.clip_available = False
@@ -467,8 +467,10 @@ class VideoMetricsCalculator:
                     if self.clip_available:
                         print(f"🎨 Calculating CLIP similarity")
                         try:
-                            clip_results = self.clip_calculator.calculate_video_similarity(
-                                pred_path, gt_path, verbose=False
+                            clip_results = self.clip_api.calculate_video_similarity(
+                                source_path=pred_path, 
+                                target_path=gt_path, 
+                                verbose=False
                             )
                             if clip_results.get('clip_similarity') is not None:
                                 metrics['clip_similarity'] = clip_results['clip_similarity']

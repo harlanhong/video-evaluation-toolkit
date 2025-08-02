@@ -14,7 +14,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from metrics_calculator import VideoMetricsCalculator
-from clip_similarity_calculator import CLIPSimilarityCalculator
+from clip_api import CLIPVideoAPI
+from clip_similarity_calculator import CLIPSimilarityCalculator  # Legacy wrapper
 from fvd_calculator import FVDCalculator
 from gim_matching_calculator import GIMMatchingCalculator
 
@@ -29,8 +30,36 @@ def example_individual_calculators():
     source_video = "path/to/source_video.mp4"
     target_video = "path/to/target_video.mp4"
     
-    # 1. CLIP Similarity Calculator
-    print("\n1️⃣ CLIP Similarity Calculator")
+    # 1. CLIP API (New Unified Interface)
+    print("\n1️⃣ CLIP API (Unified Interface)")
+    try:
+        clip_api = CLIPVideoAPI(device="cuda", model_name="ViT-B/32")
+        clip_results = clip_api.calculate_video_similarity(source_video, target_video)
+        
+        if clip_results.get('clip_similarity') is not None:
+            print(f"   CLIP Similarity: {clip_results['clip_similarity']:.4f}")
+            print(f"   Standard Deviation: {clip_results['clip_similarity_std']:.4f}")
+            print(f"   Model: {clip_results.get('model_name', 'N/A')}")
+        else:
+            print(f"   Failed: {clip_results.get('error', 'Unknown error')}")
+        
+        # Additional CLIP API features
+        print("\n   🔸 Text-Video Similarity Example:")
+        text_results = clip_api.calculate_text_video_similarity(
+            source_video, 
+            ["a person walking", "someone dancing", "outdoor scene"],
+            max_frames=10
+        )
+        if text_results.get('similarities') is not None:
+            for i, sim in enumerate(text_results['similarities']):
+                query = text_results['text_queries'][i]
+                print(f"     '{query}': {sim:.4f}")
+        
+    except Exception as e:
+        print(f"   Error: {e}")
+    
+    # 1b. CLIP Similarity Calculator (Legacy Wrapper)
+    print("\n1️⃣b CLIP Similarity Calculator (Legacy)")
     try:
         clip_calc = CLIPSimilarityCalculator(device="cuda")
         clip_results = clip_calc.calculate_video_similarity(source_video, target_video)
