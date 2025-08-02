@@ -246,6 +246,9 @@ class VideoEvaluationSetup:
                 print(f"{Colors.YELLOW}⚠️ Could not find conda environment Python, using current Python{Colors.END}")
                 print(f"{Colors.YELLOW}💡 Activate manually: conda activate {env_name}{Colors.END}")
             
+            # Verify FFmpeg functionality after environment creation
+            self._verify_ffmpeg_functionality(env_name)
+            
             self.venv_created = True
             return True
         else:
@@ -336,6 +339,91 @@ class VideoEvaluationSetup:
                 pass
                 
         return None
+    
+    def _verify_ffmpeg_functionality(self, env_name):
+        """Verify FFmpeg functionality and install missing codecs if needed"""
+        print(f"🔧 Verifying FFmpeg functionality in environment: {env_name}")
+        
+        try:
+            # Test ffmpeg command in the conda environment
+            test_result = subprocess.run(
+                ["conda", "run", "-n", env_name, "ffmpeg", "-version"],
+                capture_output=True, text=True, timeout=10
+            )
+            
+            if test_result.returncode == 0:
+                print(f"{Colors.GREEN}✅ FFmpeg is working correctly{Colors.END}")
+                
+                # Check for specific codec support
+                codecs_to_check = ["libx264", "libopenh264", "libopus"]
+                missing_codecs = []
+                
+                for codec in codecs_to_check:
+                    codec_test = subprocess.run(
+                        ["conda", "run", "-n", env_name, "ffmpeg", "-codecs"],
+                        capture_output=True, text=True
+                    )
+                    if codec not in codec_test.stdout:
+                        missing_codecs.append(codec)
+                
+                if missing_codecs:
+                    print(f"{Colors.YELLOW}⚠️ Missing codecs: {', '.join(missing_codecs)}{Colors.END}")
+                    self._install_missing_ffmpeg_codecs(env_name, missing_codecs)
+                else:
+                    print(f"{Colors.GREEN}✅ All required codecs are available{Colors.END}")
+                    
+            else:
+                print(f"{Colors.YELLOW}⚠️ FFmpeg test failed, attempting to fix...{Colors.END}")
+                self._fix_ffmpeg_installation(env_name)
+                
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
+            print(f"{Colors.YELLOW}⚠️ FFmpeg verification failed: {e}{Colors.END}")
+            print(f"🔧 Attempting to install/fix FFmpeg...")
+            self._fix_ffmpeg_installation(env_name)
+    
+    def _install_missing_ffmpeg_codecs(self, env_name, missing_codecs):
+        """Install missing FFmpeg codecs"""
+        print(f"🔧 Installing missing codecs: {', '.join(missing_codecs)}")
+        
+        # Map codec names to conda packages
+        codec_packages = {
+            "libx264": "x264",
+            "libopenh264": "openh264", 
+            "libopus": "opus"
+        }
+        
+        packages_to_install = []
+        for codec in missing_codecs:
+            if codec in codec_packages:
+                packages_to_install.append(codec_packages[codec])
+        
+        if packages_to_install:
+            cmd = f"conda install -n {env_name} -c conda-forge {' '.join(packages_to_install)} -y"
+            success = self.run_command(cmd)
+            if success:
+                print(f"{Colors.GREEN}✅ Missing codecs installed successfully{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️ Some codecs may not be available, but FFmpeg should still work{Colors.END}")
+    
+    def _fix_ffmpeg_installation(self, env_name):
+        """Fix FFmpeg installation issues"""
+        print(f"🔧 Fixing FFmpeg installation...")
+        
+        # Try to reinstall ffmpeg with all codecs
+        commands = [
+            f"conda install -n {env_name} -c conda-forge ffmpeg x264 openh264 opus -y",
+            f"conda update -n {env_name} -c conda-forge ffmpeg -y"
+        ]
+        
+        for cmd in commands:
+            print(f"   Running: {cmd}")
+            if self.run_command(cmd):
+                print(f"{Colors.GREEN}✅ FFmpeg installation fixed{Colors.END}")
+                return True
+                
+        print(f"{Colors.YELLOW}⚠️ Could not fix FFmpeg automatically. LSE calculation may not work properly.{Colors.END}")
+        print(f"{Colors.YELLOW}💡 Manual fix: conda activate {env_name} && conda install -c conda-forge ffmpeg x264 openh264{Colors.END}")
+        return False
     
     def install_dependencies(self):
         """Install Python dependencies"""

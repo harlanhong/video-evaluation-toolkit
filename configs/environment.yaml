@@ -16,7 +16,11 @@ dependencies:
   
   # Computer vision basics
   - scikit-image
+  
+  # FFmpeg with complete codec support
   - ffmpeg
+  - x264
+  - openh264
   
   # Audio processing
   - librosa

@@ -287,6 +287,9 @@ setup_conda_environment() {
     
     if [[ "$CONDA_DEFAULT_ENV" == "$env_name" ]]; then
         print_success "✅ Environment activated successfully"
+        
+        # Verify FFmpeg functionality
+        verify_ffmpeg_functionality "$env_name"
     else
         print_warning "⚠️ Environment activation may have failed"
         print_warning "💡 Manual activation: conda activate $env_name"
@@ -527,6 +530,92 @@ install_mediapipe() {
     print_status "      • ARM/Apple Silicon may need special builds"
     print_status "   💡 Fallback: System will use Ultralytics or OpenCV for face detection"
     
+    return 1
+}
+
+# Function to verify FFmpeg functionality
+verify_ffmpeg_functionality() {
+    local env_name="$1"
+    
+    print_status "🔧 Verifying FFmpeg functionality in environment: $env_name"
+    
+    # Test ffmpeg command
+    if conda run -n "$env_name" ffmpeg -version >/dev/null 2>&1; then
+        print_success "✅ FFmpeg is working correctly"
+        
+        # Check for specific codec support
+        local missing_codecs=()
+        local codecs_to_check=("libx264" "libopenh264" "libopus")
+        
+        for codec in "${codecs_to_check[@]}"; do
+            if ! conda run -n "$env_name" ffmpeg -codecs 2>/dev/null | grep -q "$codec"; then
+                missing_codecs+=("$codec")
+            fi
+        done
+        
+        if [[ ${#missing_codecs[@]} -gt 0 ]]; then
+            print_warning "⚠️ Missing codecs: ${missing_codecs[*]}"
+            install_missing_ffmpeg_codecs "$env_name" "${missing_codecs[@]}"
+        else
+            print_success "✅ All required codecs are available"
+        fi
+    else
+        print_warning "⚠️ FFmpeg test failed, attempting to fix..."
+        fix_ffmpeg_installation "$env_name"
+    fi
+}
+
+# Function to install missing FFmpeg codecs
+install_missing_ffmpeg_codecs() {
+    local env_name="$1"
+    shift
+    local missing_codecs=("$@")
+    
+    print_status "🔧 Installing missing codecs: ${missing_codecs[*]}"
+    
+    # Map codec names to conda packages
+    local packages_to_install=()
+    for codec in "${missing_codecs[@]}"; do
+        case "$codec" in
+            "libx264") packages_to_install+=("x264") ;;
+            "libopenh264") packages_to_install+=("openh264") ;;
+            "libopus") packages_to_install+=("opus") ;;
+        esac
+    done
+    
+    if [[ ${#packages_to_install[@]} -gt 0 ]]; then
+        local cmd="conda install -n $env_name -c conda-forge ${packages_to_install[*]} -y"
+        print_status "   Running: $cmd"
+        if $cmd; then
+            print_success "✅ Missing codecs installed successfully"
+        else
+            print_warning "⚠️ Some codecs may not be available, but FFmpeg should still work"
+        fi
+    fi
+}
+
+# Function to fix FFmpeg installation
+fix_ffmpeg_installation() {
+    local env_name="$1"
+    
+    print_status "🔧 Fixing FFmpeg installation..."
+    
+    # Try to reinstall ffmpeg with all codecs
+    local commands=(
+        "conda install -n $env_name -c conda-forge ffmpeg x264 openh264 opus -y"
+        "conda update -n $env_name -c conda-forge ffmpeg -y"
+    )
+    
+    for cmd in "${commands[@]}"; do
+        print_status "   Running: $cmd"
+        if $cmd; then
+            print_success "✅ FFmpeg installation fixed"
+            return 0
+        fi
+    done
+    
+    print_warning "⚠️ Could not fix FFmpeg automatically. LSE calculation may not work properly."
+    print_warning "💡 Manual fix: conda activate $env_name && conda install -c conda-forge ffmpeg x264 openh264"
     return 1
 }
 
