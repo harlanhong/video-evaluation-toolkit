@@ -137,6 +137,9 @@ models/*.tflite
 # External cloned repositories (can be reinstalled)
 gim/
 
+# GitHub templates (moved to documents/)
+.github/
+
 # Temporary/Cache directories
 cache/
 temp/

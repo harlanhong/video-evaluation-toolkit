@@ -2,7 +2,7 @@
 
 **State-of-the-art video quality assessment with LSE, VBench, and advanced face detection**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](documents/LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub Issues](https://img.shields.io/github/issues/harlanhong/video-evaluation-toolkit.svg)](https://github.com/harlanhong/video-evaluation-toolkit/issues)
 
@@ -42,14 +42,14 @@ python core/video_metrics_calculator.py \
 
 ## 📚 Documentation
 
-- **[📖 Complete Documentation](docs/README.md)** - Full feature guide
-- **[⚡ Quick Start Guide](QUICK_START.md)** - 5-minute setup  
-- **[🤝 Contributing Guidelines](CONTRIBUTING.md)** - How to contribute
-- **[📋 Changelog](CHANGELOG.md)** - Version history
+- **[📖 Complete Documentation](documents/README.md)** - Full feature guide
+- **[⚡ Quick Start Guide](documents/QUICK_START.md)** - 5-minute setup  
+- **[🤝 Contributing Guidelines](documents/CONTRIBUTING.md)** - How to contribute
+- **[📋 Changelog](documents/CHANGELOG.md)** - Version history
 
 ### Specialized Guides
-- **[MediaPipe Integration](docs/MEDIAPIPE_INTEGRATION.md)** - Advanced face detection
-- **[GIM Integration](docs/GIM_INTEGRATION.md)** - Image matching setup
+- **[MediaPipe Integration](documents/MEDIAPIPE_INTEGRATION.md)** - Advanced face detection
+- **[GIM Integration](documents/GIM_INTEGRATION.md)** - Image matching setup
 - **[API Reference](apis/README.md)** - Detailed API docs
 
 ## 🎯 Usage Examples
@@ -160,7 +160,7 @@ pip install -r configs/requirements.txt
 
 ## 🤝 Contributing
 
-We welcome contributions! Please check our [Contributing Guidelines](CONTRIBUTING.md).
+We welcome contributions! Please check our [Contributing Guidelines](documents/CONTRIBUTING.md).
 
 **Quick contributing steps:**
 1. 🐛 [Report bugs](https://github.com/harlanhong/video-evaluation-toolkit/issues/new)
@@ -175,7 +175,7 @@ We welcome contributions! Please check our [Contributing Guidelines](CONTRIBUTIN
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](documents/LICENSE) file for details.
 
 ## 🎯 Research Applications
 
@@ -196,4 +196,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ⭐ **Star this repo if it helps your research!**
 
-📖 **[Read Full Documentation](docs/README.md)** | 🚀 **[Quick Start](QUICK_START.md)** | 🤝 **[Contribute](CONTRIBUTING.md)**
+📖 **[Read Full Documentation](documents/README.md)** | 🚀 **[Quick Start](documents/QUICK_START.md)** | 🤝 **[Contribute](documents/CONTRIBUTING.md)**
