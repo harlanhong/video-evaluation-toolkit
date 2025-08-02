@@ -27,6 +27,11 @@ git+https://github.com/openai/CLIP.git
 # FVD calculation dependencies
 # Note: I3D features extracted using torchvision r3d models or custom implementation
 
+# GIM (Graph Image Matching) - Official Implementation
+# Note: Install from official repository for best performance
+# git clone https://github.com/xuelunshen/gim.git
+# cd gim && pip install -e .
+
 # VBench video generation quality assessment
 # Note: VBench should be installed separately in appropriate environment
 # conda activate vbench (recommended)
@@ -69,8 +74,14 @@ PyYAML>=6.0
 # Advanced metrics installation:
 # - CLIP similarity: Included above with CLIP installation
 # - FVD calculation: Uses torchvision (included with torch)
-# - GIM matching: Uses custom implementation (no additional dependencies)
+# - GIM matching: Requires official GIM installation (see above)
 #
 # Full installation for all features:
 # pip install -r requirements.txt
-# pip install mediapipe  # For improved face detection 
+# pip install mediapipe  # For improved face detection
+#
+# For official GIM integration (recommended):
+# git clone https://github.com/xuelunshen/gim.git
+# cd gim
+# pip install -e .
+# cd ../evalutation 

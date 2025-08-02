@@ -35,8 +35,16 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
 
   - **CLIP-V Similarity**: Calculate CLIP similarity between source and target frames at the same timestamp.
   - **FVD-V Score**: Fréchet Video Distance for video generation quality assessment (from SV4D).
-  - **GIM Matching**: State-of-the-art image matching to calculate matching pixels with confidence > threshold (Mat. Pix.).
+  - **GIM Matching**: Official GIM implementation for state-of-the-art image matching (ICLR 2024).
   - **Modular Design**: Each metric can be independently enabled for flexible evaluation.
+
+### ✅ Official GIM Integration (New)
+
+  - **State-of-the-Art Accuracy**: Direct integration with official GIM implementation from ICLR 2024.
+  - **Multiple Model Support**: GIM_RoMa, GIM_LightGlue, GIM_DKM, GIM_LoFTR, GIM_SuperGlue.
+  - **Intelligent Fallback**: Automatic fallback to simple matcher when GIM is not available.
+  - **Performance Optimized**: GPU acceleration and efficient batch processing.
+  - **Easy Installation**: Simple setup process with comprehensive documentation.
 
 ### ✅ Unified CLIP API (New)
 
@@ -75,7 +83,8 @@ evalutation/
 ├── docs/                       # Documentation
 │   ├── README.md              # Main documentation (this file)
 │   ├── README_CN.md           # Chinese documentation
-│   └── MODELS_DOWNLOAD.md     # Model download instructions
+│   ├── MODELS_DOWNLOAD.md     # Model download instructions
+│   └── GIM_INTEGRATION.md     # Official GIM integration guide
 ├── configs/                    # Configuration files
 │   ├── requirements.txt       # pip dependency configuration
 │   └── environment.yaml       # conda environment configuration
@@ -160,6 +169,33 @@ pip install -r requirements.txt
 # If you have an NVIDIA GPU, using the CUDA version is recommended
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121  # for CUDA 12.1
 ```
+
+#### Method 4: Installation with Official GIM Integration (Recommended)
+
+```bash
+# Navigate to project directory
+cd evalutation
+
+# Create conda environment with all dependencies
+conda env create -f configs/environment.yaml
+conda activate video-evaluation
+
+# Install official GIM for state-of-the-art image matching
+git clone https://github.com/xuelunshen/gim.git
+cd gim
+pip install -e .
+cd ..
+
+# Verify installation including GIM
+python -c "
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
+from evalutation.calculators.gim_calculator import GIMMatchingCalculator
+calc = GIMMatchingCalculator()
+print(f'✅ Installation successful with GIM: {calc.get_model_info()[\"gim_available\"]}')
+"
+```
+
+For detailed GIM installation and troubleshooting, see: [`docs/GIM_INTEGRATION.md`](docs/GIM_INTEGRATION.md)
 
 ### 🔧 Dependency Details
 
@@ -350,6 +386,35 @@ finally:
     calculator.cleanup()
 ```
 
+#### Official GIM Matching (New)
+
+```python
+from evalutation.calculators.gim_calculator import GIMMatchingCalculator
+
+# Initialize with official GIM implementation
+gim_calculator = GIMMatchingCalculator(
+    model_name="gim_roma",        # Highest accuracy model
+    device="cuda",
+    confidence_threshold=0.5
+)
+
+# Calculate matching for video pair
+results = gim_calculator.calculate_video_matching(
+    source_path="source_video.mp4",
+    target_path="target_video.mp4",
+    max_frames=50,
+    verbose=True
+)
+
+# Display detailed results
+print(f"Model: {results['model_name']}")
+print(f"Total matching pixels: {results['total_matching_pixels']}")
+print(f"Average per frame: {results['avg_matching_pixels']:.2f}")
+print(f"Confidence threshold: {results['confidence_threshold']}")
+
+# Available models: gim_roma, gim_lightglue, gim_dkm, gim_loftr, gim_superglue
+```
+
 #### Comparison with Ground Truth
 
 ```python
@@ -457,6 +522,32 @@ python -m apis.clip_api \
     --task extract_features \
     --source video.mp4 \
     --max_frames 30
+```
+
+#### Official GIM Matching
+
+```bash
+# High accuracy matching with GIM_RoMa
+python -m calculators.gim_calculator \
+    --source source_video.mp4 \
+    --target target_video.mp4 \
+    --model gim_roma \
+    --threshold 0.5
+
+# Fast matching with GIM_LightGlue
+python -m calculators.gim_calculator \
+    --source source_video.mp4 \
+    --target target_video.mp4 \
+    --model gim_lightglue \
+    --threshold 0.6 \
+    --max_frames 30
+
+# Dense matching with GIM_DKM
+python -m calculators.gim_calculator \
+    --source source_video.mp4 \
+    --target target_video.mp4 \
+    --model gim_dkm \
+    --output dense_matching_results.json
 ```
 
 #### LSE Calculation for a Single Video

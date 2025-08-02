@@ -82,4 +82,10 @@ dependencies:
 # 5. New advanced metrics:
 #    - CLIP-V: Calculate CLIP similarity between source and target frames
 #    - FVD-V: Fréchet Video Distance for video quality assessment
-#    - GIM: Graph Image Matching for synchronization evaluation 
+#    - GIM: Graph Image Matching for synchronization evaluation (requires separate install)
+#
+# 6. Official GIM integration (recommended for best accuracy):
+#    After creating the environment, install GIM:
+#    conda activate video-evaluation
+#    git clone https://github.com/xuelunshen/gim.git
+#    cd gim && pip install -e . && cd .. 
