@@ -5,6 +5,7 @@ Utils Module - Utility Functions and Scripts
 This module provides utility functions and scripts for the video evaluation toolkit.
 
 Available Utilities:
+    - install_gim.py: Automated GIM installation script
     - Installation verification scripts
     - Helper functions
     - Common utilities
