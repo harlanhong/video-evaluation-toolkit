@@ -94,12 +94,36 @@ python core/video_metrics_calculator.py \
 
 ## 🎯 Typical Results (v2.1.0)
 
-| Metric | Face Region | Full Image | Good Values |
-|--------|-------------|------------|-------------|
-| **PSNR** | 25-35 dB | 30-40 dB | Higher = Better |
-| **SSIM** | 0.8-0.95 | 0.85-0.98 | Closer to 1 |
-| **LPIPS** | 0.02-0.15 | 0.01-0.10 | Lower = Better |
-| **LSE** | 5-12 | - | Lower = Better |
+### 📊 Core Quality Metrics
+| Metric | Face Region | Full Image | Good Values | Notes |
+|--------|-------------|------------|-------------|-------|
+| **PSNR** | 25-35 dB | 30-40 dB | Higher = Better | Peak signal quality |
+| **SSIM** | 0.8-0.95 | 0.85-0.98 | Closer to 1 | Structural similarity |
+| **LPIPS** | 0.02-0.15 | 0.01-0.10 | Lower = Better | Perceptual distance |
+
+### 🎵 Lip-Sync Metrics  
+| Metric | Typical Range | Good Values | Notes |
+|--------|---------------|-------------|-------|
+| **LSE Distance** | 5-12 | Lower = Better | Audio-visual sync |
+| **LSE Confidence** | 6-8 | Higher = Better | Sync reliability |
+| **LSE-D MSE** ⭐ | 0.1-2.0 | Lower = Better | Sync error vs GT |
+| **LSE-C MSE** ⭐ | 0.1-1.5 | Lower = Better | Confidence error vs GT |
+
+### 🎨 CLIP Similarity Metrics
+| Metric | Typical Range | Good Values | Notes |
+|--------|---------------|-------------|-------|
+| **CLIP Similarity** | 0.85-0.98 | Higher = Better | Semantic similarity |
+| **CLIP Std Dev** | 0.01-0.05 | Lower = Better | Frame consistency |
+
+### 🔥 VBench Metrics (0-100 scale)
+| Metric | Typical Range | Good Values | Focus |
+|--------|---------------|-------------|-------|
+| **Subject Consistency** | 80-95 | Higher = Better | Character coherence |
+| **Background Consistency** | 85-98 | Higher = Better | Scene stability |
+| **Motion Smoothness** | 75-90 | Higher = Better | Movement quality |
+| **Dynamic Degree** | 60-85 | Depends on content | Activity level |
+| **Aesthetic Quality** | 70-90 | Higher = Better | Visual appeal |
+| **Imaging Quality** | 80-95 | Higher = Better | Technical quality |
 
 ## 🏗️ Architecture
 
@@ -123,16 +147,71 @@ video-evaluation-toolkit/
 
 ## 🧪 Supported Metrics
 
-### Core Metrics (No Ground Truth Required)
-- **Video Info**: Frame count, resolution, FPS, duration
-- **Image Statistics**: Brightness, contrast, saturation, sharpness  
-- **Face Analysis**: Detection rate, size, stability
-- **Lip Sync**: LSE distance and confidence
-- **VBench**: Subject/background consistency, motion smoothness, aesthetic quality
+### 📊 Core Video Quality Metrics
+| Metric | Description | Output Keys | Usage |
+|--------|-------------|-------------|-------|
+| **PSNR** | Peak Signal-to-Noise Ratio | `psnr` | Image quality (dB, higher=better) |
+| **SSIM** | Structural Similarity Index | `ssim` | Perceptual similarity (0-1, higher=better) |
+| **LPIPS** | Learned Perceptual Image Patch Similarity | `lpips` | Deep perceptual distance (lower=better) |
 
-### Comparison Metrics (Requires Ground Truth)
-- **Image Quality**: PSNR, SSIM, LPIPS (full image or face region)
-- **Region Selection**: `--region face_only` or `--region full_image`
+### 🎵 Lip-Sync Error (LSE) Metrics
+| Metric | Description | Output Keys | Usage |
+|--------|-------------|-------------|-------|
+| **LSE Distance** | Lip-sync synchronization distance | `lse_distance` | Audio-visual sync (lower=better) |
+| **LSE Confidence** | Lip-sync detection confidence | `lse_confidence` | Sync reliability score |
+| **LSE-D MSE** ⭐ | MSE between pred & GT LSE distance | `lse_d_mse` | Quantitative sync comparison |
+| **LSE-C MSE** ⭐ | MSE between pred & GT LSE confidence | `lse_c_mse` | Confidence difference analysis |
+
+### 🤖 Advanced AI Metrics (Optional)
+
+#### 🎨 CLIP Similarity Suite (`--clip`) - 多模态相似度计算
+
+##### 📊 Video-Video 相似度 (主要指标)
+| Metric | Description | Output Keys | Usage |
+|--------|-------------|-------------|-------|
+| **CLIP Similarity** | Average semantic similarity | `clip_similarity` | Primary similarity score (0-1, higher=better) |
+| **CLIP Std Dev** | Similarity standard deviation | `clip_similarity_std` | Consistency of similarity across frames |
+| **CLIP Min/Max** | Minimum/Maximum similarity | `clip_similarity_min`, `clip_similarity_max` | Range analysis |
+| **CLIP Median** | Median similarity | `clip_similarity_median` | Robust central tendency |
+
+##### 🔧 CLIP API 完整功能
+| 功能类型 | API方法 | 输入 | 输出 | 用途 |
+|---------|---------|------|------|------|
+| **Image-Image** | `calculate_frame_similarity()` | 两个图像帧 | 余弦相似度 | 帧间语义相似度 |
+| **Video-Video** | `calculate_video_similarity()` | 两个视频文件 | 统计信息+逐帧相似度 | 视频语义相似度对比 |
+| **Text-Video** | `calculate_text_video_similarity()` | 文本+视频 | 文本-视频匹配度 | 内容描述匹配 |
+| **Batch Video** | `calculate_batch_video_similarity()` | 多个视频对 | 批量相似度结果 | 批量处理 |
+| **Feature Extract** | `extract_video_features()` | 视频文件 | CLIP特征向量 | 特征提取 |
+| **Text Features** | `extract_text_features()` | 文本描述 | CLIP文本特征 | 文本编码 |
+| **Image Features** | `extract_image_features()` | 图像/帧 | CLIP图像特征 | 图像编码 |
+
+#### 🔥 VBench Suite (`--vbench`) - 6 Core Metrics
+| Metric | Description | Output Keys | Focus Area |
+|--------|-------------|-------------|------------|
+| **Subject Consistency** | Subject appearance stability | `subject_consistency` | Character/object coherence |
+| **Background Consistency** | Background stability | `background_consistency` | Scene consistency |
+| **Motion Smoothness** | Temporal motion quality | `motion_smoothness` | Movement fluidity |
+| **Dynamic Degree** | Motion intensity analysis | `dynamic_degree` | Activity level assessment |
+| **Aesthetic Quality** | Visual appeal evaluation | `aesthetic_quality` | Overall visual quality |
+| **Imaging Quality** | Technical image quality | `imaging_quality` | Resolution, clarity, artifacts |
+
+#### 📊 Other Advanced Metrics
+| Metric | Description | Output Keys | Flag |
+|--------|-------------|-------------|------|
+| **FVD** | Fréchet Video Distance | `fvd_score` | `--fvd` |
+| **GIM Matching** | Graph Image Matching pixels | `gim_matching_pixels`, `gim_avg_matching` | `--gim` |
+
+### 📈 Video Analysis Metrics
+| Category | Metrics | Description |
+|----------|---------|-------------|
+| **Video Info** | `frame_count`, `resolution`, `fps`, `duration` | Basic video properties |
+| **Face Analysis** | `face_detection_rate`, `avg_face_size`, `face_stability` | Face region analysis |
+| **Image Stats** | `brightness`, `contrast`, `saturation`, `sharpness` | Image characteristics |
+
+### 🎯 Region Selection
+- **`--region face_only`**: Calculate PSNR/SSIM/LPIPS on detected face regions only
+- **`--region full_image`**: Calculate metrics on entire video frames
+- **Other metrics**: Always computed on full frames (LSE, VBench, etc.)
 
 ## 🔧 Installation Options
 
