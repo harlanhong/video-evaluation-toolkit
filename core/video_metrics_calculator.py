@@ -254,6 +254,8 @@ class VideoMetricsCalculator:
             # Lip sync metrics (using LSE calculator, no external audio needed)
             'lse_distance': None,     # LSE distance score
             'lse_confidence': None,   # LSE confidence score
+            'lse_d_mse': None,        # MSE between pred and GT LSE distance
+            'lse_c_mse': None,        # MSE between pred and GT LSE confidence
             
             # VBench metrics (no ground truth needed)
             'subject_consistency': None,     # Subject consistency
@@ -386,16 +388,44 @@ class VideoMetricsCalculator:
             if self.enable_lse and self.lse_available:
                 print(f"🎵 Calculating LSE scores for: {os.path.basename(pred_path)}")
                 try:
-                    lse_distance, lse_confidence = self.lse_calculator.calculate_single_video(pred_path, verbose=False)
-                    metrics['lse_distance'] = lse_distance
-                    metrics['lse_confidence'] = lse_confidence
-                    print(f"   ✅ LSE calculation completed: distance={lse_distance:.4f}, confidence={lse_confidence:.4f}")
+                    # Calculate LSE for predicted video
+                    pred_lse_distance, pred_lse_confidence = self.lse_calculator.calculate_single_video(pred_path, verbose=False)
+                    metrics['lse_distance'] = pred_lse_distance
+                    metrics['lse_confidence'] = pred_lse_confidence
+                    print(f"   ✅ Pred LSE: distance={pred_lse_distance:.4f}, confidence={pred_lse_confidence:.4f}")
+                    
+                    # Calculate LSE for GT video and MSE if GT is available
+                    if gt_path and os.path.exists(gt_path):
+                        print(f"🎵 Calculating GT LSE scores for: {os.path.basename(gt_path)}")
+                        try:
+                            gt_lse_distance, gt_lse_confidence = self.lse_calculator.calculate_single_video(gt_path, verbose=False)
+                            print(f"   ✅ GT LSE: distance={gt_lse_distance:.4f}, confidence={gt_lse_confidence:.4f}")
+                            
+                            # Calculate MSE between pred and GT LSE scores
+                            lse_d_mse = (pred_lse_distance - gt_lse_distance) ** 2
+                            lse_c_mse = (pred_lse_confidence - gt_lse_confidence) ** 2
+                            
+                            metrics['lse_d_mse'] = lse_d_mse
+                            metrics['lse_c_mse'] = lse_c_mse
+                            print(f"   📊 LSE MSE: distance_mse={lse_d_mse:.4f}, confidence_mse={lse_c_mse:.4f}")
+                            
+                        except Exception as e:
+                            print(f"⚠️ GT LSE calculation failed for {os.path.basename(gt_path)}: {e}")
+                            metrics['lse_d_mse'] = None
+                            metrics['lse_c_mse'] = None
+                    else:
+                        print("   ⚠️ No GT video available for LSE MSE calculation")
+                        metrics['lse_d_mse'] = None
+                        metrics['lse_c_mse'] = None
+                        
                 except Exception as e:
                     print(f"⚠️ LSE calculation failed for {os.path.basename(pred_path)}: {e}")
                     print(f"   📁 File path: {pred_path}")
                     print(f"   📋 File exists: {os.path.exists(pred_path)}")
                     metrics['lse_distance'] = None
                     metrics['lse_confidence'] = None
+                    metrics['lse_d_mse'] = None
+                    metrics['lse_c_mse'] = None
             elif self.enable_lse and not self.lse_available:
                 print(f"⚠️ LSE calculator not available, skipping LSE calculation")
             # If LSE is not enabled, we don't mention it at all
@@ -964,7 +994,7 @@ class VideoMetricsCalculator:
             "Image Statistics": ['mean_brightness', 'mean_contrast', 'mean_saturation', 'sharpness_score'],
             "Face Analysis": ['face_detection_rate', 'avg_face_size', 'face_stability'],
             "Motion Analysis": ['motion_intensity', 'frame_difference'],
-            "LSE Metrics": ['lse_distance', 'lse_confidence'],
+                            "LSE Metrics": ['lse_distance', 'lse_confidence', 'lse_d_mse', 'lse_c_mse'],
             "VBench Metrics": ['subject_consistency', 'background_consistency', 'motion_smoothness',
                          'dynamic_degree', 'aesthetic_quality', 'imaging_quality'],
             "Comparison Metrics": ['psnr', 'ssim', 'lpips']
@@ -1019,8 +1049,8 @@ class VideoMetricsCalculator:
         # Statistics on various metrics
         stats = {}
         
-        metric_keys = ['face_psnr', 'face_ssim', 'face_lpips', 
-                      'lse_distance', 'lse_confidence',
+        metric_keys = ['psnr', 'ssim', 'lpips', 
+                      'lse_distance', 'lse_confidence', 'lse_d_mse', 'lse_c_mse',
                       'subject_consistency', 'background_consistency', 'motion_smoothness',
                       'dynamic_degree', 'aesthetic_quality', 'imaging_quality']
         
@@ -1051,7 +1081,7 @@ class VideoMetricsCalculator:
                     print(f"    Range: [{stat['min']:.4f}, {stat['max']:.4f}]")
             
             print(f"\n🎵 LSE Metrics:")
-            for key in ['lse_distance', 'lse_confidence']:
+            for key in ['lse_distance', 'lse_confidence', 'lse_d_mse', 'lse_c_mse']:
                 if key in stats:
                     stat = stats[key]
                     print(f"  {key}:")
