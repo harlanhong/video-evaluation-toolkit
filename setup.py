@@ -59,16 +59,28 @@ class VideoEvaluationSetup:
         # Model URLs and information
         self.models_info = {
             "syncnet": {
-                "url": "https://github.com/joonson/syncnet_python/releases/download/v0.0.1/syncnet_v2.model",
+                "url": None,  # Already available locally
                 "filename": "syncnet_v2.model",
                 "description": "SyncNet model for lip-sync evaluation",
-                "size": "~180MB"
+                "size": "~52MB",
+                "priority": "high",
+                "local_only": True
             },
             "s3fd": {
-                "url": "https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth",
-                "filename": "s3fd.pth", 
+                "url": None,  # Already available locally
+                "filename": "sfd_face.pth", 
                 "description": "S3FD face detection model",
-                "size": "~180MB"
+                "size": "~86MB",
+                "priority": "high",
+                "local_only": True
+            },
+            "yolov8_face": {
+                "url": "https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt",
+                "filename": "yolov8n-face.pt",
+                "description": "YOLOv8 face detection model",
+                "size": "~6MB",
+                "priority": "high",
+                "local_only": False
             }
         }
     
@@ -296,6 +308,11 @@ class VideoEvaluationSetup:
             "numba>=0.56.0",  # Performance acceleration
         ]
         
+        # Special packages requiring custom installation logic
+        special_packages = [
+            "vbench",  # Video generation evaluation benchmark (PyTorch version compatibility)
+        ]
+        
         print(f"🎯 Installing high priority packages for enhanced functionality...")
         for package in high_priority_packages:
             print(f"   Installing {package}...")
@@ -304,6 +321,19 @@ class VideoEvaluationSetup:
                 print(f"   ✅ {package.split('>=')[0]} installed successfully")
             else:
                 print(f"   ⚠️ {package.split('>=')[0]} installation failed (optional)")
+        
+        # Install special packages with custom logic
+        print(f"\n🔧 Installing special packages with enhanced compatibility...")
+        for package in special_packages:
+            if package == "vbench":
+                self._install_vbench()
+            else:
+                print(f"   Installing {package}...")
+                success = self.run_command(f"{sys.executable} -m pip install {package}", check=False)
+                if success:
+                    print(f"   ✅ {package} installed successfully")
+                else:
+                    print(f"   ⚠️ {package} installation failed")
         
         # Special handling for MediaPipe (Platform-dependent installation)
         print(f"🔧 Installing MediaPipe with platform compatibility handling...")
@@ -336,19 +366,35 @@ class VideoEvaluationSetup:
         gim_installer = self.setup_dir / "utils" / "install_gim.py"
         
         if gim_installer.exists():
-            print(f"🚀 Using automated GIM installer...")
-            force_flag = "--force" if self.args.force else ""
-            success = self.run_command(f"{sys.executable} {gim_installer} {force_flag}")
+            print(f"🚀 Using automated GIM installer: {gim_installer}")
+            
+            # Build command with proper arguments
+            cmd_parts = [sys.executable, str(gim_installer)]
+            if self.args.force:
+                cmd_parts.append("--force")
+                
+            # Add installation path (GIM installer uses --path)
+            cmd_parts.extend(["--path", str(self.setup_dir)])
+            
+            success = self.run_command(cmd_parts)
         else:
-            print(f"📥 Manual GIM installation...")
+            print(f"📥 GIM installer not found, using manual installation...")
             success = self._manual_gim_install()
         
         if success:
             print(f"{Colors.GREEN}✅ GIM installed successfully - Enhanced image matching available!{Colors.END}")
             self.gim_installed = True
+            
+            # Verify GIM installation
+            gim_path = self.setup_dir / "gim"
+            if gim_path.exists():
+                demo_file = gim_path / "demo.py"
+                if demo_file.exists():
+                    print(f"   📄 GIM demo available: {demo_file}")
+                    print(f"   🚀 Test with: python {demo_file} --model gim_roma")
         else:
             print(f"{Colors.YELLOW}⚠️ GIM installation failed, will use fallback implementation{Colors.END}")
-            print(f"   You can install GIM later with: python utils/install_gim.py")
+            print(f"   You can install GIM later with: python {gim_installer}")
             self.gim_installed = False
         
         return True  # Don't fail setup if GIM fails
@@ -389,6 +435,32 @@ class VideoEvaluationSetup:
         except Exception as e:
             print(f"{Colors.RED}❌ Manual GIM installation failed: {e}{Colors.END}")
             return False
+    
+    def _install_vbench(self):
+        """Install VBench with PyTorch compatibility handling"""
+        print(f"   Installing VBench (video generation evaluation benchmark)...")
+        
+        # First try normal installation
+        success = self.run_command(f"{sys.executable} -m pip install vbench", check=False)
+        if success:
+            print(f"   ✅ VBench installed successfully (standard method)")
+            return
+        
+        # If failed, try with --no-deps to bypass PyTorch version conflicts
+        print(f"   ⚠️ Standard installation failed, trying compatibility mode...")
+        success = self.run_command(f"{sys.executable} -m pip install vbench --no-deps", check=False)
+        if success:
+            print(f"   ✅ VBench installed successfully (compatibility mode)")
+            # Test if VBench works
+            test_success = self.run_command(f"{sys.executable} -c 'from vbench import VBench; print(\"VBench functional\")'", check=False)
+            if test_success:
+                print(f"   ✅ VBench functionality verified")
+            else:
+                print(f"   ⚠️ VBench installed but functionality test failed")
+        else:
+            print(f"   ❌ VBench installation failed")
+            print(f"   💡 You can try manual installation:")
+            print(f"      pip install vbench --no-deps")
     
     def _install_mediapipe(self):
         """Install MediaPipe with platform-specific handling"""
@@ -470,17 +542,29 @@ class VideoEvaluationSetup:
         total_models = len(self.models_info)
         
         for model_name, model_info in self.models_info.items():
-            print(f"\n📥 Downloading {model_name}: {model_info['description']}")
+            print(f"\n📦 Processing {model_name}: {model_info['description']}")
             print(f"   Size: {model_info['size']}")
-            print(f"   URL: {model_info['url']}")
             
             model_path = self.models_dir / model_info['filename']
             
-            # Skip if file already exists and not forcing
-            if model_path.exists() and not self.args.force:
+            # Check if file already exists
+            if model_path.exists():
                 print(f"{Colors.GREEN}✅ {model_name} already exists{Colors.END}")
                 success_count += 1
                 continue
+            
+            # Handle local_only models (check if they exist, don't download)
+            if model_info.get('local_only', False):
+                print(f"{Colors.YELLOW}⚠️ {model_name} is local-only but not found{Colors.END}")
+                print(f"   Expected at: {model_path}")
+                continue
+            
+            # Skip models without URL
+            if not model_info.get('url'):
+                print(f"{Colors.YELLOW}⚠️ {model_name} has no download URL{Colors.END}")
+                continue
+                
+            print(f"   URL: {model_info['url']}")
             
             try:
                 # Download with progress
@@ -500,10 +584,24 @@ class VideoEvaluationSetup:
                 print(f"\n{Colors.RED}❌ Failed to download {model_name}: {e}{Colors.END}")
                 continue
         
-        print(f"\n📊 Model Download Summary: {success_count}/{total_models} models downloaded")
+        # Copy models to appropriate locations
+        print(f"\n🔄 Setting up model paths...")
+        self._setup_model_paths()
+        
+        # Calculate priority statistics
+        high_priority_models = [name for name, info in self.models_info.items() if info.get("priority") == "high"]
+        high_priority_downloaded = sum(1 for name in high_priority_models 
+                                     if (self.models_dir / self.models_info[name]["filename"]).exists())
+        
+        print(f"\n📊 Model Download Summary:")
+        print(f"   Total models: {success_count}/{total_models} downloaded")
+        print(f"   High priority: {high_priority_downloaded}/{len(high_priority_models)} downloaded")
         
         if success_count == total_models:
-            print(f"{Colors.GREEN}✅ All models downloaded successfully{Colors.END}")
+            print(f"{Colors.GREEN}✅ All models downloaded successfully - full functionality available{Colors.END}")
+            self.models_downloaded = True
+        elif high_priority_downloaded >= len(high_priority_models):
+            print(f"{Colors.GREEN}✅ All high priority models downloaded - core functionality available{Colors.END}")
             self.models_downloaded = True
         elif success_count > 0:
             print(f"{Colors.YELLOW}⚠️ Some models downloaded, toolkit will work with reduced functionality{Colors.END}")
@@ -513,6 +611,35 @@ class VideoEvaluationSetup:
             self.models_downloaded = False
         
         return True
+    
+    def _setup_model_paths(self):
+        """Setup model paths for different components"""
+        # Ensure calculators/models directory exists
+        calculators_models_dir = self.setup_dir / "calculators" / "models"
+        calculators_models_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy SyncNet model for LSE calculator
+        syncnet_src = self.models_dir / "syncnet_v2.model"
+        syncnet_dst = calculators_models_dir / "syncnet_v2.model"
+        if syncnet_src.exists():
+            shutil.copy2(syncnet_src, syncnet_dst)
+            print(f"   ✅ SyncNet model → calculators/models/")
+        
+        # Copy S3FD model 
+        s3fd_src = self.models_dir / "sfd_face.pth"
+        s3fd_dst = self.models_dir / "sfd_face.pth"  # Keep in models dir for S3FD
+        if s3fd_src.exists():
+            print(f"   ✅ S3FD model → models/")
+        
+        # YOLOv8 and OpenCV models stay in models directory
+        yolo_model = self.models_dir / "yolov8n-face.pt"
+        opencv_model = self.models_dir / "opencv_face_detector_uint8.pb"
+        opencv_config = self.models_dir / "opencv_face_detector.pbtxt"
+        
+        if yolo_model.exists():
+            print(f"   ✅ YOLOv8 face model → models/")
+        if opencv_model.exists() and opencv_config.exists():
+            print(f"   ✅ OpenCV DNN models → models/")
     
     def setup_vbench_integration(self):
         """Setup VBench integration"""
@@ -771,7 +898,14 @@ High Priority Packages (Auto-installed):
     • MediaPipe: Google's advanced face detection and tracking framework
     • Ultralytics: YOLOv8-based face detection with superior accuracy
     • NumBA: JIT compilation for numerical performance acceleration
+    • VBench: Comprehensive video generation evaluation benchmark (v0.1.5+)
     • Official GIM: State-of-the-art image matching (ICLR 2024)
+
+VBench Features (v0.1.5+):
+    • High-resolution video quality assessment
+    • Customized video evaluation support
+    • Enhanced preprocessing for imaging quality
+    • Compatible with PyTorch 2.0+ (smart dependency handling)
 
 MediaPipe Features:
     • Real-time face detection and landmarks

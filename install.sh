@@ -93,7 +93,14 @@ HIGH PRIORITY PACKAGES (Auto-installed):
     • MediaPipe: Google's advanced face detection and tracking framework
     • Ultralytics: YOLOv8-based face detection with superior accuracy
     • NumBA: JIT compilation for numerical performance acceleration
+    • VBench: Comprehensive video generation evaluation benchmark (v0.1.5+)
     • Official GIM: State-of-the-art image matching (ICLR 2024)
+
+VBENCH FEATURES (v0.1.5+):
+    • High-resolution video quality assessment
+    • Customized video evaluation support
+    • Enhanced preprocessing for imaging quality
+    • Compatible with PyTorch 2.0+ (smart dependency handling)
 
 MEDIAPIPE FEATURES:
     • Real-time face detection and landmarks extraction
@@ -337,6 +344,10 @@ install_dependencies() {
         "numba>=0.56.0"        # Performance acceleration
     )
     
+    local special_packages=(
+        "vbench"               # Video generation evaluation benchmark (PyTorch compatibility)
+    )
+    
     for package in "${high_priority_packages[@]}"; do
         package_name=${package%%>=*}
         print_status "Installing $package..."
@@ -344,6 +355,39 @@ install_dependencies() {
             print_success "   $package_name installed successfully"
         else
             print_warning "   $package_name installation failed (optional)"
+        fi
+    done
+    
+    # Install special packages with custom logic
+    print_status "🔧 Installing special packages with enhanced compatibility..."
+    for package in "${special_packages[@]}"; do
+        package_name=${package%%>=*}
+        if [ "$package_name" = "vbench" ]; then
+            print_status "Installing VBench (video generation evaluation benchmark)..."
+            
+            # Try normal installation first
+            if python3 -m pip install vbench 2>/dev/null; then
+                print_success "   VBench installed successfully (standard method)"
+            elif python3 -m pip install vbench --no-deps 2>/dev/null; then
+                print_success "   VBench installed successfully (compatibility mode)"
+                # Test functionality
+                if python3 -c "from vbench import VBench; print('VBench functional')" 2>/dev/null; then
+                    print_success "   VBench functionality verified"
+                else
+                    print_warning "   VBench installed but functionality test failed"
+                fi
+            else
+                print_warning "   VBench installation failed"
+                print_info "   💡 You can try manual installation:"
+                print_info "      pip install vbench --no-deps"
+            fi
+        else
+            print_status "Installing $package..."
+            if python3 -m pip install "$package" 2>/dev/null; then
+                print_success "   $package_name installed successfully"
+            else
+                print_warning "   $package_name installation failed"
+            fi
         fi
     done
     
