@@ -61,6 +61,11 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
 
 ```
 evalutation/
+├── setup.py                   # 🆕 One-click Python installation script
+├── install.sh                 # 🆕 One-click Bash installation script  
+├── CHANGELOG.md               # 🆕 Project change history
+├── QUICK_START.md             # 🆕 Auto-generated quick start guide
+├── __init__.py                # Package initialization
 ├── apis/                       # Unified API interfaces
 │   ├── __init__.py
 │   ├── clip_api.py            # Comprehensive CLIP API
@@ -69,7 +74,7 @@ evalutation/
 │   ├── __init__.py
 │   ├── clip_calculator.py     # CLIP similarity calculator (legacy wrapper)
 │   ├── fvd_calculator.py      # FVD score calculator
-│   ├── gim_calculator.py      # GIM image matching calculator
+│   ├── gim_calculator.py      # GIM image matching calculator (official integration)
 │   ├── lse_calculator.py      # LSE calculator
 │   └── vbench_calculator.py   # VBench integration module
 ├── core/                       # Core calculation engine
@@ -79,7 +84,8 @@ evalutation/
 │   ├── __init__.py
 │   ├── basic_usage.py         # Basic usage example
 │   ├── advanced_metrics.py    # Advanced metrics usage example
-│   └── clip_api_demo.py       # Comprehensive CLIP API demonstration
+│   ├── clip_api_demo.py       # Comprehensive CLIP API demonstration
+│   └── gim_demo.py            # 🆕 Official GIM integration demonstration
 ├── docs/                       # Documentation
 │   ├── README.md              # Main documentation (this file)
 │   ├── README_CN.md           # Chinese documentation
@@ -89,10 +95,11 @@ evalutation/
 │   ├── requirements.txt       # pip dependency configuration
 │   └── environment.yaml       # conda environment configuration
 ├── utils/                      # Utility functions and scripts
-│   └── __init__.py
-├── models/                     # Model files
-│   ├── syncnet_v2.model       # SyncNet model weights (52MB)
-│   └── sfd_face.pth           # S3FD face detection model (86MB)
+│   ├── __init__.py
+│   └── install_gim.py         # 🆕 Automated GIM installation script
+├── models/                     # Model files (auto-downloaded)
+│   ├── syncnet_v2.model       # SyncNet model weights (~180MB)
+│   └── s3fd.pth               # S3FD face detection model (~180MB)
 ├── syncnet_core/              # SyncNet core modules
 │   ├── __init__.py
 │   ├── model.py               # SyncNet model definition
@@ -103,7 +110,8 @@ evalutation/
 │           ├── box_utils.py
 │           └── nets.py
 ├── cache/                      # Video processing cache
-└── __init__.py                 # Package initialization
+├── gim/                        # 🆕 Official GIM repository (auto-cloned)
+└── venv/                       # 🆕 Virtual environment (if using venv mode)
 ```
 
 ## 🚀 Quick Start
@@ -126,6 +134,61 @@ evalutation/
   - macOS 10.15+
 
 ### ⚙️ Install Dependencies
+
+#### 🎯 One-Click Installation (Recommended)
+
+The easiest way to get started with the Video Evaluation Toolkit:
+
+##### Option A: Automated Python Setup Script
+```bash
+# Clone the repository
+git clone https://github.com/harlanhong/video-evaluation-toolkit.git
+cd video-evaluation-toolkit
+
+# Run one-click setup (auto-detects best method)
+python setup.py
+
+# For GPU support and full features
+python setup.py --gpu
+
+# For conda environment (recommended)
+python setup.py --mode conda --gpu
+
+# Skip model downloads for faster setup
+python setup.py --skip-models
+
+# Force clean installation
+python setup.py --force
+```
+
+##### Option B: Bash Installation Script (Linux/macOS)
+```bash
+# Clone the repository
+git clone https://github.com/harlanhong/video-evaluation-toolkit.git
+cd video-evaluation-toolkit
+
+# Run bash installer
+bash install.sh
+
+# With GPU support
+bash install.sh --gpu
+
+# Force clean installation
+bash install.sh --force --gpu
+
+# Skip model downloads
+bash install.sh --skip-models
+```
+
+**One-Click Installation Features:**
+- 🔧 **Automatic environment setup** (conda/venv detection)
+- 📦 **Complete dependency installation** (including GIM)
+- 🎭 **Model download** (SyncNet, S3FD checkpoints)
+- ✅ **Installation verification** and testing
+- 📚 **Quick start guide** generation
+- 🎯 **GPU support** detection and setup
+
+#### Manual Installation Methods
 
 #### Method 1: Using VBench Environment (Recommended)
 
