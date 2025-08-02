@@ -13,11 +13,11 @@ import sys
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from metrics_calculator import VideoMetricsCalculator
-from clip_api import CLIPVideoAPI
-from clip_similarity_calculator import CLIPSimilarityCalculator  # Legacy wrapper
-from fvd_calculator import FVDCalculator
-from gim_matching_calculator import GIMMatchingCalculator
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
+from evalutation.apis.clip_api import CLIPVideoAPI
+from evalutation.calculators.clip_calculator import CLIPSimilarityCalculator  # Legacy wrapper
+from evalutation.calculators.fvd_calculator import FVDCalculator
+from evalutation.calculators.gim_calculator import GIMMatchingCalculator
 
 
 def example_individual_calculators():

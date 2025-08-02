@@ -52,7 +52,35 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
 ## 📁 Directory Structure
 
 ```
-evaluation/
+evalutation/
+├── apis/                       # Unified API interfaces
+│   ├── __init__.py
+│   ├── clip_api.py            # Comprehensive CLIP API
+│   └── README.md              # API documentation
+├── calculators/                # Independent metric calculators
+│   ├── __init__.py
+│   ├── clip_calculator.py     # CLIP similarity calculator (legacy wrapper)
+│   ├── fvd_calculator.py      # FVD score calculator
+│   ├── gim_calculator.py      # GIM image matching calculator
+│   ├── lse_calculator.py      # LSE calculator
+│   └── vbench_calculator.py   # VBench integration module
+├── core/                       # Core calculation engine
+│   ├── __init__.py
+│   └── video_metrics_calculator.py # Comprehensive metrics calculator
+├── examples/                   # Usage examples and demonstrations
+│   ├── __init__.py
+│   ├── basic_usage.py         # Basic usage example
+│   ├── advanced_metrics.py    # Advanced metrics usage example
+│   └── clip_api_demo.py       # Comprehensive CLIP API demonstration
+├── docs/                       # Documentation
+│   ├── README.md              # Main documentation (this file)
+│   ├── README_CN.md           # Chinese documentation
+│   └── MODELS_DOWNLOAD.md     # Model download instructions
+├── configs/                    # Configuration files
+│   ├── requirements.txt       # pip dependency configuration
+│   └── environment.yaml       # conda environment configuration
+├── utils/                      # Utility functions and scripts
+│   └── __init__.py
 ├── models/                     # Model files
 │   ├── syncnet_v2.model       # SyncNet model weights (52MB)
 │   └── sfd_face.pth           # S3FD face detection model (86MB)
@@ -65,21 +93,8 @@ evaluation/
 │           ├── __init__.py
 │           ├── box_utils.py
 │           └── nets.py
-├── lse_calculator.py          # LSE calculator
-├── metrics_calculator.py      # Comprehensive metrics calculator (VBench integrated)
-├── vbench_official_final.py   # VBench direct integration module
-├── clip_api.py                # Unified CLIP API for all CLIP-based metrics
-├── clip_similarity_calculator.py # CLIP similarity calculator (legacy wrapper)
-├── fvd_calculator.py          # FVD score calculator
-├── gim_matching_calculator.py # GIM image matching calculator
-├── requirements.txt           # pip dependency configuration
-├── environment.yaml           # conda environment configuration
-├── verify_installation.py     # Installation verification script
-├── examples/
-│   ├── usage_example.py       # Basic usage example
-│   ├── advanced_metrics_example.py # Advanced metrics usage example
-│   └── clip_api_example.py    # Comprehensive CLIP API usage example
-└── README.md                  # This document
+├── cache/                      # Video processing cache
+└── __init__.py                 # Package initialization
 ```
 
 ## 🚀 Quick Start
@@ -203,7 +218,7 @@ python verify_installation.py
 #### Basic Metrics Calculation (Fast Mode)
 
 ```python
-from metrics_calculator import VideoMetricsCalculator
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
 
 # Create a calculator in fast mode (without VBench)
 calculator = VideoMetricsCalculator(enable_vbench=False)
@@ -219,7 +234,7 @@ print(f"Face detection rate: {metrics['face_detection_rate']}")
 #### Full Metrics Calculation (with VBench)
 
 ```python
-from metrics_calculator import VideoMetricsCalculator
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
 
 # Create a calculator in full mode (with VBench)
 calculator = VideoMetricsCalculator(enable_vbench=True)
@@ -274,7 +289,7 @@ finally:
 #### CLIP API Usage (New Unified Interface)
 
 ```python
-from clip_api import CLIPVideoAPI
+from evalutation.apis.clip_api import CLIPVideoAPI
 
 # Initialize CLIP API
 clip_api = CLIPVideoAPI(model_name="ViT-B/32", device="cuda")
@@ -310,7 +325,7 @@ clip_api.save_results(similarity_result, "clip_results.json")
 #### Advanced Metrics with CLIP Integration
 
 ```python
-from metrics_calculator import VideoMetricsCalculator
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
 
 # Create calculator with advanced metrics enabled
 calculator = VideoMetricsCalculator(
@@ -348,7 +363,7 @@ metrics = calculator.calculate_video_metrics(
 #### Using the LSE Calculator Separately
 
 ```python
-from lse_calculator import LSECalculator
+from evalutation.calculators.lse_calculator import LSECalculator
 
 # Initialize
 calculator = LSECalculator()
@@ -368,21 +383,21 @@ results = calculator.calculate_batch(video_paths)
 #### Fast Mode (without VBench metrics)
 
 ```bash
-cd evaluation
-python metrics_calculator.py --pred_dir /path/to/videos
+cd evalutation
+python -m core.video_metrics_calculator --pred_dir /path/to/videos
 ```
 
 #### Full Mode (with VBench metrics)
 
 ```bash
-cd evaluation
-python metrics_calculator.py --pred_dir /path/to/videos --vbench
+cd evalutation  
+python -m core.video_metrics_calculator --pred_dir /path/to/videos --vbench
 ```
 
 #### Specify Ground Truth Directory for Comparison
 
 ```bash
-python metrics_calculator.py \
+python -m core.video_metrics_calculator \
     --pred_dir /path/to/predictions \
     --gt_dir /path/to/ground_truth \
     --vbench \
@@ -392,7 +407,7 @@ python metrics_calculator.py \
 #### Custom Output and File Pattern
 
 ```bash
-python metrics_calculator.py \
+python -m core.video_metrics_calculator \
     --pred_dir /path/to/videos \
     --vbench \
     --output my_results.json \
@@ -403,19 +418,19 @@ python metrics_calculator.py \
 
 ```bash
 # Enable CLIP similarity calculation
-python metrics_calculator.py \
+python -m core.video_metrics_calculator \
     --pred_dir /path/to/videos \
     --gt_dir /path/to/ground_truth \
     --clip
 
 # Enable GIM matching
-python metrics_calculator.py \
+python -m core.video_metrics_calculator \
     --pred_dir /path/to/videos \
     --gt_dir /path/to/ground_truth \
     --gim
 
 # Enable all advanced metrics
-python metrics_calculator.py \
+python -m core.video_metrics_calculator \
     --pred_dir /path/to/videos \
     --gt_dir /path/to/ground_truth \
     --all_advanced --vbench
@@ -425,20 +440,20 @@ python metrics_calculator.py \
 
 ```bash
 # Video-to-video similarity
-python clip_api.py \
+python -m apis.clip_api \
     --task video_similarity \
     --source video1.mp4 \
     --target video2.mp4 \
     --model ViT-L/14
 
 # Text-to-video similarity
-python clip_api.py \
+python -m apis.clip_api \
     --task text_video \
     --source video.mp4 \
     --text "a person walking outdoors"
 
 # Feature extraction
-python clip_api.py \
+python -m apis.clip_api \
     --task extract_features \
     --source video.mp4 \
     --max_frames 30
@@ -447,7 +462,7 @@ python clip_api.py \
 #### LSE Calculation for a Single Video
 
 ```bash
-python lse_calculator.py --video /path/to/video.mp4
+python -m calculators.lse_calculator --video /path/to/video.mp4
 ```
 
 ## 📊 Supported Metrics

@@ -23,11 +23,11 @@ from typing import Optional, Dict, Any, List, Tuple
 # Import the unified CLIP API
 try:
     # Use relative import when imported as package
-    from .clip_api import CLIPVideoAPI
+    from ..apis.clip_api import CLIPVideoAPI
 except ImportError:
     # Use absolute import when run directly
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from clip_api import CLIPVideoAPI
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from apis.clip_api import CLIPVideoAPI
 
 
 class CLIPSimilarityCalculator:

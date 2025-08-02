@@ -16,8 +16,8 @@ import os
 # 添加evalutation包到路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from evalutation.lse_calculator import LSECalculator
-from evalutation.metrics_calculator import VideoMetricsCalculator
+from evalutation.calculators.lse_calculator import LSECalculator
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
 
 
 def example_lse_calculator():

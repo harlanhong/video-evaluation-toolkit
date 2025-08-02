@@ -49,59 +49,25 @@ from tqdm import tqdm
 import lpips
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
-# LSE calculator
+# Import calculators
 try:
     # Use relative import when imported as package
-    from .lse_calculator import LSECalculator
+    from ..calculators.lse_calculator import LSECalculator
+    from ..calculators.vbench_calculator import VBenchDirect
+    from ..calculators.fvd_calculator import FVDCalculator
+    from ..calculators.gim_calculator import GIMMatchingCalculator
+    from ..apis.clip_api import CLIPVideoAPI
 except ImportError:
     # Use absolute import when run directly
     import sys
     import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(current_dir)
-    from lse_calculator import LSECalculator
-
-# VBench calculator
-try:
-    # Use relative import when imported as package
-    from .vbench_official_final import VBenchDirect
-except ImportError:
-    # Use absolute import when run directly
-    import sys
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(current_dir)
-    from vbench_official_final import VBenchDirect
-
-# CLIP API (unified CLIP interface)
-try:
-    from .clip_api import CLIPVideoAPI
-except ImportError:
-    import sys
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(current_dir)
-    from clip_api import CLIPVideoAPI
-
-# FVD calculator
-try:
-    from .fvd_calculator import FVDCalculator
-except ImportError:
-    import sys
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(current_dir)
-    from fvd_calculator import FVDCalculator
-
-# GIM matching calculator
-try:
-    from .gim_matching_calculator import GIMMatchingCalculator
-except ImportError:
-    import sys
-    import os
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.append(current_dir)
-    from gim_matching_calculator import GIMMatchingCalculator
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(parent_dir)
+    from calculators.lse_calculator import LSECalculator
+    from calculators.vbench_calculator import VBenchDirect
+    from calculators.fvd_calculator import FVDCalculator
+    from calculators.gim_calculator import GIMMatchingCalculator
+    from apis.clip_api import CLIPVideoAPI
 
 
 class VideoMetricsCalculator:
