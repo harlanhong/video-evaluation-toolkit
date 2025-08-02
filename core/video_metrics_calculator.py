@@ -86,7 +86,8 @@ class VideoMetricsCalculator:
                  enable_vbench: bool = False,
                  enable_clip_similarity: bool = False,
                  enable_fvd: bool = False,
-                 enable_gim_matching: bool = False):
+                 enable_gim_matching: bool = False,
+                 enable_lse: bool = False):
         """
         Initialize metrics calculator
         
@@ -94,14 +95,16 @@ class VideoMetricsCalculator:
             device: Computing device ("cuda" or "cpu")
             enable_vbench: Whether to enable VBench metrics calculation
             enable_clip_similarity: Whether to enable CLIP similarity calculation
-            enable_fvd: Whether to enable FVD calculation
-            enable_gim_matching: Whether to enable GIM image matching calculation
+            enable_fvd: Whether to enable FVD calculation  
+            enable_gim_matching: Whether to enable GIM matching calculation
+            enable_lse: Whether to enable LSE (Lip-Sync Error) calculation
         """
         self.device = device if torch.cuda.is_available() else "cpu"
         self.enable_vbench = enable_vbench
         self.enable_clip_similarity = enable_clip_similarity
         self.enable_fvd = enable_fvd
         self.enable_gim_matching = enable_gim_matching
+        self.enable_lse = enable_lse
         
         # Initialize LPIPS model
         print("🔄 Initializing LPIPS model...")
@@ -117,13 +120,17 @@ class VideoMetricsCalculator:
         else:
             print("⚠️ All face detectors failed to initialize, face-related metrics will be skipped")
         
-        # Initialize LSE calculator
-        print("🔄 Initializing LSE calculator...")
-        try:
-            self.lse_calculator = LSECalculator(device=self.device)
-            self.lse_available = True
-        except Exception as e:
-            print(f"⚠️ LSE calculator initialization failed: {e}")
+        # Initialize LSE calculator (only if enabled)
+        if self.enable_lse:
+            print("🔄 Initializing LSE calculator...")
+            try:
+                self.lse_calculator = LSECalculator(device=self.device)
+                self.lse_available = True
+            except Exception as e:
+                print(f"⚠️ LSE calculator initialization failed: {e}")
+                self.lse_available = False
+        else:
+            self.lse_calculator = None
             self.lse_available = False
         
         # Initialize VBench calculator
@@ -186,6 +193,7 @@ class VideoMetricsCalculator:
         if self.clip_available: enabled_modules.append("CLIP")
         if self.fvd_available: enabled_modules.append("FVD")
         if self.gim_available: enabled_modules.append("GIM")
+        if self.lse_available: enabled_modules.append("LSE")
         
         modules_str = ", ".join(enabled_modules) if enabled_modules else "Basic metrics only"
         print(f"🚀 Metrics calculator initialization completed (device: {self.device}, modules: {modules_str})")
@@ -374,8 +382,8 @@ class VideoMetricsCalculator:
                 metrics['motion_intensity'] = np.std(frame_diffs) if frame_diffs else 0.0
                 metrics['frame_difference'] = np.mean(frame_diffs) if frame_diffs else 0.0
             
-            # Calculate LSE scores (using LSE calculator)
-            if self.lse_available:
+            # Calculate LSE scores (using LSE calculator, only if enabled)
+            if self.enable_lse and self.lse_available:
                 print(f"🎵 Calculating LSE scores (using LSE calculator)")
                 try:
                     lse_distance, lse_confidence = self.lse_calculator.calculate_single_video(pred_path, verbose=False)
@@ -385,8 +393,9 @@ class VideoMetricsCalculator:
                     print(f"⚠️ LSE calculation failed: {e}")
                     metrics['lse_distance'] = None
                     metrics['lse_confidence'] = None
-            else:
+            elif self.enable_lse and not self.lse_available:
                 print(f"⚠️ LSE calculator not available, skipping LSE calculation")
+            # If LSE is not enabled, we don't mention it at all
             
             # Calculate VBench scores
             if self.vbench_available:
@@ -1115,7 +1124,8 @@ def main():
     parser.add_argument("--clip", action="store_true", help="Enable CLIP similarity calculation")
     parser.add_argument("--fvd", action="store_true", help="Enable FVD calculation")
     parser.add_argument("--gim", action="store_true", help="Enable GIM matching calculation")
-    parser.add_argument("--all_advanced", action="store_true", help="Enable all advanced metrics (CLIP, FVD, GIM)")
+    parser.add_argument("--lse", action="store_true", help="Enable LSE (Lip-Sync Error) calculation")
+    parser.add_argument("--all_advanced", action="store_true", help="Enable all advanced metrics (CLIP, FVD, GIM, LSE)")
     parser.add_argument("--region", type=str, default="face_only", choices=["face_only", "full_image"], help="Region for PSNR/SSIM/LPIPS calculation")
     
     args = parser.parse_args()
@@ -1125,6 +1135,7 @@ def main():
         args.clip = True
         args.fvd = True
         args.gim = True
+        args.lse = True
     
     print("🚀 Starting Comprehensive Video Metrics Calculator")
     
@@ -1134,7 +1145,8 @@ def main():
         enable_vbench=args.vbench,
         enable_clip_similarity=args.clip,
         enable_fvd=args.fvd,
-        enable_gim_matching=args.gim
+        enable_gim_matching=args.gim,
+        enable_lse=args.lse
     )
     
     try:
