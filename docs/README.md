@@ -211,7 +211,16 @@ python core/video_metrics_calculator.py --device cpu
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guidelines](../CONTRIBUTING.md) for details.
+
+### Quick Contribution Guide
+
+- 🐛 **Report bugs**: [Create an issue](https://github.com/harlanhong/video-evaluation-toolkit/issues/new)
+- 💡 **Request features**: [Start a discussion](https://github.com/harlanhong/video-evaluation-toolkit/discussions)
+- 🔧 **Submit code**: Fork → Branch → Code → Test → Pull Request
+- 📚 **Improve docs**: Documentation improvements are always welcome
+
+For detailed guidelines, development setup, and code standards, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## 📧 Support
 

@@ -1,0 +1,49 @@
+# Development Dependencies for Video Evaluation Toolkit
+# Install with: pip install -r configs/requirements-dev.txt
+
+# Base requirements (include main dependencies)
+-r requirements.txt
+
+# Code Quality & Formatting
+black>=23.0.0                  # Code formatter
+isort>=5.12.0                  # Import sorter
+flake8>=6.0.0                  # Linter
+mypy>=1.0.0                    # Type checker
+pre-commit>=3.0.0              # Git hooks for code quality
+
+# Testing Framework
+pytest>=7.0.0                  # Testing framework
+pytest-cov>=4.0.0             # Coverage reporting
+pytest-xdist>=3.0.0           # Parallel test execution
+pytest-mock>=3.10.0           # Mocking for tests
+
+# Documentation
+sphinx>=6.0.0                 # Documentation generator
+sphinx-rtd-theme>=1.2.0       # Read the Docs theme
+sphinx-autodoc-typehints>=1.19.0  # Type hints in docs
+
+# Development Tools
+jupyter>=1.0.0                # Notebook development
+ipython>=8.0.0                # Enhanced Python shell
+tqdm>=4.64.0                  # Progress bars (dev version)
+
+# Performance Profiling (optional)
+line_profiler>=4.0.0          # Line-by-line profiling
+memory_profiler>=0.60.0       # Memory usage profiling
+
+# Video/Image Tools (for testing)
+imageio>=2.25.0               # Video I/O for tests
+pillow>=9.0.0                 # Image processing for tests
+
+# Additional ML/CV tools for advanced development
+scikit-learn>=1.2.0           # ML utilities
+matplotlib>=3.6.0             # Plotting for analysis
+seaborn>=0.12.0               # Statistical visualization
+
+# Build and packaging tools
+build>=0.9.0                  # Modern Python packaging
+twine>=4.0.0                  # Package uploading
+wheel>=0.38.0                 # Wheel building
+
+# Git tools
+gitpython>=3.1.30             # Git integration in Python
