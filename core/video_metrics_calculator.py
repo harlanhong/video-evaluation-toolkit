@@ -384,13 +384,16 @@ class VideoMetricsCalculator:
             
             # Calculate LSE scores (using LSE calculator, only if enabled)
             if self.enable_lse and self.lse_available:
-                print(f"🎵 Calculating LSE scores (using LSE calculator)")
+                print(f"🎵 Calculating LSE scores for: {os.path.basename(pred_path)}")
                 try:
                     lse_distance, lse_confidence = self.lse_calculator.calculate_single_video(pred_path, verbose=False)
                     metrics['lse_distance'] = lse_distance
                     metrics['lse_confidence'] = lse_confidence
+                    print(f"   ✅ LSE calculation completed: distance={lse_distance:.4f}, confidence={lse_confidence:.4f}")
                 except Exception as e:
-                    print(f"⚠️ LSE calculation failed: {e}")
+                    print(f"⚠️ LSE calculation failed for {os.path.basename(pred_path)}: {e}")
+                    print(f"   📁 File path: {pred_path}")
+                    print(f"   📋 File exists: {os.path.exists(pred_path)}")
                     metrics['lse_distance'] = None
                     metrics['lse_confidence'] = None
             elif self.enable_lse and not self.lse_available:

@@ -317,6 +317,10 @@ class LSECalculator:
     
     def _detect_scenes(self, video_path: str) -> List[Tuple]:
         """Detect scenes in a video using the new PySceneDetect API."""
+        # Check if video file exists first
+        if not os.path.exists(video_path):
+            raise FileNotFoundError(f"Video file not found: {video_path}")
+            
         try:
             # Use the new scenedetect.detect API
             scene_list = detect(video_path, ContentDetector())
