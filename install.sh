@@ -279,7 +279,18 @@ setup_conda_environment() {
     fi
     
     print_success "Conda environment created successfully"
-    print_warning "💡 Activate with: conda activate $env_name"
+    
+    # Activate the conda environment
+    print_status "Activating conda environment: $env_name"
+    eval "$(conda shell.bash hook)"
+    conda activate "$env_name"
+    
+    if [[ "$CONDA_DEFAULT_ENV" == "$env_name" ]]; then
+        print_success "✅ Environment activated successfully"
+    else
+        print_warning "⚠️ Environment activation may have failed"
+        print_warning "💡 Manual activation: conda activate $env_name"
+    fi
 }
 
 # Function to setup virtual environment
@@ -302,7 +313,17 @@ setup_venv_environment() {
     python3 -m venv "$venv_path"
     
     print_success "Virtual environment created successfully"
-    print_warning "💡 Activate with: source $venv_path/bin/activate"
+    
+    # Activate the virtual environment
+    print_status "Activating virtual environment: $venv_path"
+    source "$venv_path/bin/activate"
+    
+    if [[ "$VIRTUAL_ENV" == "$venv_path" ]]; then
+        print_success "✅ Virtual environment activated successfully"
+    else
+        print_warning "⚠️ Virtual environment activation may have failed"
+        print_warning "💡 Manual activation: source $venv_path/bin/activate"
+    fi
 }
 
 # Function to setup pip only
@@ -522,17 +543,18 @@ download_models() {
     local models_dir="$SCRIPT_DIR/models"
     mkdir -p "$models_dir"
     
-    # Model information
+    # Model information (NOTE: Most models are already included locally)
     declare -A models=(
-        ["syncnet"]="https://github.com/joonson/syncnet_python/releases/download/v0.0.1/syncnet_v2.model:syncnet_v2.model:~180MB"
-        ["s3fd"]="https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth:s3fd.pth:~180MB"
+        ["syncnet"]="https://github.com/joonson/syncnet_python/releases/download/v0.0.1/syncnet_v2.model|syncnet_v2.model|~52MB"
+        ["s3fd"]="https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth|sfd_face.pth|~86MB"
+        ["yolov8_face"]="https://github.com/akanametov/yolov8-face/releases/download/v0.0.0/yolov8n-face.pt|yolov8n-face.pt|~6MB"
     )
     
     local success_count=0
     local total_models=${#models[@]}
     
     for model_name in "${!models[@]}"; do
-        IFS=':' read -r url filename size <<< "${models[$model_name]}"
+        IFS='|' read -r url filename size <<< "${models[$model_name]}"
         local model_path="$models_dir/$filename"
         
         echo
@@ -594,17 +616,17 @@ verify_installation() {
     
     # Test basic imports
     local tests=(
-        "Basic Import:from evalutation.core.video_metrics_calculator import VideoMetricsCalculator"
-        "CLIP API:from evalutation.apis.clip_api import CLIPVideoAPI"
-        "GIM Calculator:from evalutation.calculators.gim_calculator import GIMMatchingCalculator"
-        "LSE Calculator:from evalutation.calculators.lse_calculator import LSECalculator"
+        "Basic Import:from core.video_metrics_calculator import VideoMetricsCalculator"
+        "CLIP API:from apis.clip_api import CLIPVideoAPI"
+        "GIM Calculator:from calculators.gim_calculator import GIMMatchingCalculator"
+        "LSE Calculator:from calculators.lse_calculator import LSECalculator"
     )
     
     for test in "${tests[@]}"; do
         IFS=':' read -r test_name test_code <<< "$test"
         print_status "Testing $test_name..."
         
-        if python3 -c "$test_code" >/dev/null 2>&1; then
+        if PYTHONPATH=. python3 -c "$test_code" >/dev/null 2>&1; then
             print_success "   $test_name - OK"
             ((passed_tests++))
         else
@@ -616,8 +638,8 @@ verify_installation() {
     print_status "Additional checks..."
     
     # Check GIM availability
-    local gim_status=$(python3 -c "
-from evalutation.calculators.gim_calculator import GIMMatchingCalculator
+    local gim_status=$(PYTHONPATH=. python3 -c "
+from calculators.gim_calculator import GIMMatchingCalculator
 calc = GIMMatchingCalculator()
 info = calc.get_model_info()
 print(f'GIM available: {info[\"gim_available\"]}')
@@ -660,7 +682,7 @@ create_quick_start_guide() {
 
 #### 1. Basic Video Metrics
 ```python
-from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
+from core.video_metrics_calculator import VideoMetricsCalculator
 
 calculator = VideoMetricsCalculator()
 metrics = calculator.calculate_video_metrics(
@@ -710,7 +732,7 @@ python -m core.video_metrics_calculator \
 4. Explore advanced features
 
 ### Troubleshooting
-- Check installation: `python -c "from evalutation.core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working!')"`
+- Check installation: `PYTHONPATH=. python -c "from core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working.')"`
 - Update dependencies: `pip install -r configs/requirements.txt --upgrade`
 - Reinstall GIM: `python utils/install_gim.py --force`
 
@@ -730,24 +752,34 @@ print_summary() {
     
     case $INSTALL_MODE in
         conda)
-            echo "   1. Activate environment: conda activate video-evaluation"
+            if [[ "$CONDA_DEFAULT_ENV" == "video-evaluation" ]]; then
+                echo "   1. ✅ Environment activated: video-evaluation"
+                echo "   2. 🔄 To reactivate later: conda activate video-evaluation"
+            else
+                echo "   1. Activate environment: conda activate video-evaluation"
+            fi
             ;;
         venv)
-            echo "   1. Activate environment: source venv/bin/activate"
+            if [[ -n "$VIRTUAL_ENV" ]]; then
+                echo "   1. ✅ Virtual environment activated: $VIRTUAL_ENV"
+                echo "   2. 🔄 To reactivate later: source venv/bin/activate"
+            else
+                echo "   1. Activate environment: source venv/bin/activate"
+            fi
             ;;
         pip)
             echo "   1. Environment ready (using system Python)"
             ;;
     esac
     
-    echo "   2. Read quick start: cat QUICK_START.md"
-    echo "   3. Try examples: python examples/basic_usage.py"
-    echo "   4. Read documentation: docs/README.md"
+    echo "   📖 Read quick start: cat QUICK_START.md"
+    echo "   🚀 Try examples: python examples/basic_usage.py"
+    echo "   📚 Read documentation: docs/README.md"
     
     echo
     print_status "Useful Commands:"
-    echo "   • Test installation: python -c \"from evalutation.core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working!')\""
-    echo "   • Check GIM status: python -c \"from evalutation.calculators.gim_calculator import GIMMatchingCalculator; print(GIMMatchingCalculator().get_model_info())\""
+    echo "   • Test installation: PYTHONPATH=. python -c \"from core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working.')\""
+    echo "   • Check GIM status: PYTHONPATH=. python -c \"from calculators.gim_calculator import GIMMatchingCalculator; print(GIMMatchingCalculator().get_model_info())\""
     echo "   • Update toolkit: git pull origin main"
     
     echo

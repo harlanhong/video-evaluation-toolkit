@@ -498,8 +498,93 @@ class VideoMetricsCalculator:
         
         return metrics
     
-    def calculate_frame_metrics(self, pred_frame: np.ndarray, gt_frame: np.ndarray) -> Dict[str, float]:
-        """Calculate single frame metrics (face region only)"""
+    def calculate_frame_metrics(self, 
+                               pred_frame: np.ndarray, 
+                               gt_frame: np.ndarray, 
+                               region: str = "face_only",
+                               face_padding: float = 0.2) -> Dict[str, float]:
+        """
+        Calculate single frame metrics
+        
+        Args:
+            pred_frame: Predicted frame in RGB format
+            gt_frame: Ground truth frame in RGB format  
+            region: "full_image" or "face_only" - which region to calculate metrics for
+            face_padding: Padding around detected face (when region="face_only")
+            
+        Returns:
+            Dictionary with calculated metrics
+        """
+        
+        if region == "full_image":
+            return self._calculate_full_image_metrics(pred_frame, gt_frame)
+        elif region == "face_only":
+            return self._calculate_face_metrics(pred_frame, gt_frame, face_padding)
+        else:
+            raise ValueError(f"Invalid region: {region}. Must be 'full_image' or 'face_only'")
+    
+    def _calculate_full_image_metrics(self, pred_frame: np.ndarray, gt_frame: np.ndarray) -> Dict[str, float]:
+        """Calculate metrics for the full image"""
+        
+        metrics = {
+            'psnr': 0.0,
+            'ssim': 0.0,
+            'lpips': 0.0,
+            'region_used': 'full_image',
+            'face_detected': False
+        }
+        
+        # Ensure both frames have the same size
+        if pred_frame.shape != gt_frame.shape:
+            gt_frame = cv2.resize(gt_frame, (pred_frame.shape[1], pred_frame.shape[0]))
+        
+        # Calculate PSNR for full image
+        try:
+            psnr_val = peak_signal_noise_ratio(gt_frame, pred_frame, data_range=255)
+            metrics['psnr'] = psnr_val
+        except Exception as e:
+            print(f"   ⚠️ PSNR calculation failed: {e}")
+            metrics['psnr'] = 0.0
+        
+        # Calculate SSIM for full image
+        try:
+            ssim_val = structural_similarity(
+                gt_frame, pred_frame, 
+                multichannel=True, 
+                data_range=255,
+                channel_axis=-1
+            )
+            metrics['ssim'] = ssim_val
+        except Exception as e:
+            print(f"   ⚠️ SSIM calculation failed: {e}")
+            metrics['ssim'] = 0.0
+        
+        # Calculate LPIPS for full image
+        try:
+            # Convert to tensor format [1, C, H, W]
+            pred_tensor = torch.from_numpy(pred_frame).permute(2, 0, 1).unsqueeze(0).float() / 255.0
+            gt_tensor = torch.from_numpy(gt_frame).permute(2, 0, 1).unsqueeze(0).float() / 255.0
+            
+            # Normalize to [-1, 1]
+            pred_tensor = pred_tensor * 2.0 - 1.0
+            gt_tensor = gt_tensor * 2.0 - 1.0
+            
+            pred_tensor = pred_tensor.to(self.device)
+            gt_tensor = gt_tensor.to(self.device)
+            
+            lpips_val = self.lpips_fn(pred_tensor, gt_tensor).item()
+            metrics['lpips'] = lpips_val
+        except Exception as e:
+            print(f"   ⚠️ LPIPS calculation failed: {e}")
+            metrics['lpips'] = 0.0
+        
+        return metrics
+    
+    def _calculate_face_metrics(self, 
+                               pred_frame: np.ndarray, 
+                               gt_frame: np.ndarray, 
+                               face_padding: float = 0.2) -> Dict[str, float]:
+        """Calculate metrics for face region only"""
         
         # Detect face region
         pred_face_bbox = self.detect_face_bbox(pred_frame)
@@ -508,31 +593,45 @@ class VideoMetricsCalculator:
         metrics = {
             'face_psnr': 0.0,
             'face_ssim': 0.0,
-            'face_lpips': 0.0
+            'face_lpips': 0.0,
+            'region_used': 'face_only',
+            'face_detected': False
         }
         
         # If faces are detected in both frames, calculate face region metrics
         if pred_face_bbox is not None and gt_face_bbox is not None:
+            metrics['face_detected'] = True
+            
             # Use the larger bounding box to ensure the full face is included
             x1 = min(pred_face_bbox[0], gt_face_bbox[0])
             y1 = min(pred_face_bbox[1], gt_face_bbox[1])
             x2 = max(pred_face_bbox[0] + pred_face_bbox[2], gt_face_bbox[0] + gt_face_bbox[2])
             y2 = max(pred_face_bbox[1] + pred_face_bbox[3], gt_face_bbox[1] + gt_face_bbox[3])
             
-            # Ensure coordinates are within image boundaries
+            # Add padding around face region
             h, w = pred_frame.shape[:2]
-            x1, y1 = max(0, x1), max(0, y1)
-            x2, y2 = min(w, x2), min(h, y2)
+            face_w, face_h = x2 - x1, y2 - y1
+            pad_w, pad_h = int(face_w * face_padding), int(face_h * face_padding)
+            
+            x1 = max(0, x1 - pad_w)
+            y1 = max(0, y1 - pad_h)
+            x2 = min(w, x2 + pad_w)
+            y2 = min(h, y2 + pad_h)
             
             if x2 > x1 and y2 > y1:  # Ensure a valid region
                 pred_face = pred_frame[y1:y2, x1:x2]
                 gt_face = gt_frame[y1:y2, x1:x2]
                 
+                # Ensure both face crops have the same size
+                if pred_face.shape != gt_face.shape:
+                    gt_face = cv2.resize(gt_face, (pred_face.shape[1], pred_face.shape[0]))
+                
                 # Calculate face region PSNR
                 try:
                     face_psnr = peak_signal_noise_ratio(gt_face, pred_face, data_range=255)
                     metrics['face_psnr'] = face_psnr
-                except:
+                except Exception as e:
+                    print(f"   ⚠️ Face PSNR calculation failed: {e}")
                     metrics['face_psnr'] = 0.0
                 
                 # Calculate face region SSIM
@@ -544,7 +643,8 @@ class VideoMetricsCalculator:
                         channel_axis=-1
                     )
                     metrics['face_ssim'] = face_ssim
-                except:
+                except Exception as e:
+                    print(f"   ⚠️ Face SSIM calculation failed: {e}")
                     metrics['face_ssim'] = 0.0
                 
                 # Calculate face region LPIPS
@@ -562,8 +662,11 @@ class VideoMetricsCalculator:
                     
                     face_lpips = self.lpips_fn(pred_tensor, gt_tensor).item()
                     metrics['face_lpips'] = face_lpips
-                except:
+                except Exception as e:
+                    print(f"   ⚠️ Face LPIPS calculation failed: {e}")
                     metrics['face_lpips'] = 0.0
+        else:
+            print("   ⚠️ No face detected in one or both frames, returning zero metrics")
         
         return metrics
     
@@ -589,7 +692,7 @@ class VideoMetricsCalculator:
         try:
             from ultralytics import YOLO
             # Try to load YOLOv8n-face model (if available)
-            self.yolo_model = YOLO('yolov8n-face.pt')
+            self.yolo_model = YOLO('models/yolov8n-face.pt')
             print("   ⚡ Using YOLOv8 face detection")
             return "yolov8"
         except ImportError:

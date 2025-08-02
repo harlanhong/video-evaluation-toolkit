@@ -2,37 +2,29 @@ name: video-evaluation
 channels:
   - pytorch
   - conda-forge
-  - defaults
 
 dependencies:
-  # Python version
-  - python>=3.8,<3.12
+  # Python version (compatible with current environment)
+  - python=3.10
   
-  # Core ML/DL frameworks
-  - pytorch>=2.0.0
-  - torchvision>=0.15.0
-  - numpy>=1.21.0
+  # Core dependencies (minimal versions to avoid conflicts)
+  - numpy
+  - scipy
+  - pillow
+  - tqdm
+  - pyyaml
   
-  # Computer vision and image processing
-  - opencv>=4.5.0
-  - scikit-image>=0.19.0
+  # Computer vision basics
+  - scikit-image
+  - ffmpeg
   
-  # Audio processing (for LSE calculator)
-  - librosa>=0.9.0
-  - scipy>=1.8.0
+  # Audio processing
+  - librosa
   
-  # Video processing
-  - ffmpeg>=4.3.0
+  # Performance optimization
+  - numba
   
-  # Utilities
-  - tqdm>=4.62.0
-  - pillow>=8.3.0
-  - pyyaml>=6.0
-  
-  # Optional: for better performance
-  - numba>=0.56.0
-  
-  # Pip dependencies (not available via conda)
+  # Pip dependencies
   - pip
   - pip:
     # Audio feature extraction
@@ -48,19 +40,13 @@ dependencies:
     # CLIP for similarity calculation
     - git+https://github.com/openai/CLIP.git
     
-    # VBench video generation quality assessment
-    # Uncomment the following line if you want to install VBench via pip
-    # Note: It's recommended to use existing VBench environment if available
-    # - vbench
+    # High-priority packages (installed separately via setup.py)
+    # - ultralytics  # YOLOv8 face detection
+    # - vbench       # Video evaluation benchmark
+    # - mediapipe    # Advanced face detection (Python 3.8-3.12 only)
     
-    # Advanced face detection (recommended for better performance)
-    # Uncomment ONE of the following options:
-    
-    # Option 1: MediaPipe (recommended - fast, accurate, lightweight)
-    - mediapipe>=0.10.0
-    
-    # Option 2: YOLOv8 for face detection (very fast, good accuracy)
-    # - ultralytics>=8.0.0
+    # Basic OpenCV (conda version may conflict)
+    - opencv-python-headless>=4.5.0
 
 # Installation Notes:
 # 1. If you already have a VBench conda environment, use that instead:

@@ -56,6 +56,9 @@ class VideoEvaluationSetup:
         self.gim_installed = False
         self.models_downloaded = False
         
+        # Python executable (will be updated to use created environment)
+        self.python_executable = sys.executable
+        
         # Model URLs and information
         self.models_info = {
             "syncnet": {
@@ -223,7 +226,16 @@ class VideoEvaluationSetup:
         
         if success:
             print(f"{Colors.GREEN}✅ Conda environment created successfully{Colors.END}")
-            print(f"{Colors.YELLOW}💡 Activate with: conda activate {env_name}{Colors.END}")
+            
+            # Set the Python executable to use the conda environment
+            conda_python = self._get_conda_python_path(env_name)
+            if conda_python and conda_python.exists():
+                self.python_executable = str(conda_python)
+                print(f"{Colors.GREEN}✅ Using conda environment Python: {self.python_executable}{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️ Could not find conda environment Python, using current Python{Colors.END}")
+                print(f"{Colors.YELLOW}💡 Activate manually: conda activate {env_name}{Colors.END}")
+            
             self.venv_created = True
             return True
         else:
@@ -250,13 +262,22 @@ class VideoEvaluationSetup:
         if success:
             print(f"{Colors.GREEN}✅ Virtual environment created successfully{Colors.END}")
             
-            # Activate script path
+            # Set the Python executable to use the venv environment
             if platform.system() == "Windows":
+                venv_python = venv_path / "Scripts" / "python.exe"
                 activate_script = venv_path / "Scripts" / "activate.bat"
-                print(f"{Colors.YELLOW}💡 Activate with: {activate_script}{Colors.END}")
+                activate_hint = f"{activate_script}"
             else:
+                venv_python = venv_path / "bin" / "python"
                 activate_script = venv_path / "bin" / "activate"
-                print(f"{Colors.YELLOW}💡 Activate with: source {activate_script}{Colors.END}")
+                activate_hint = f"source {activate_script}"
+            
+            if venv_python.exists():
+                self.python_executable = str(venv_python)
+                print(f"{Colors.GREEN}✅ Using virtual environment Python: {self.python_executable}{Colors.END}")
+            else:
+                print(f"{Colors.YELLOW}⚠️ Could not find virtual environment Python, using current Python{Colors.END}")
+                print(f"{Colors.YELLOW}💡 Activate manually: {activate_hint}{Colors.END}")
             
             self.venv_created = True
             return True
@@ -270,6 +291,41 @@ class VideoEvaluationSetup:
         print(f"{Colors.YELLOW}⚠️ Installing directly to system Python (not recommended for production){Colors.END}")
         self.venv_created = True  # Skip venv activation checks
         return True
+    
+    def _get_conda_python_path(self, env_name):
+        """Get the Python executable path for a conda environment"""
+        try:
+            # Try to get conda info for the environment
+            result = subprocess.run(
+                ["conda", "info", "--envs"], 
+                capture_output=True, text=True, check=True
+            )
+            
+            for line in result.stdout.split('\n'):
+                if env_name in line and not line.startswith('#'):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        env_path = Path(parts[-1])  # Last part is the path
+                        if platform.system() == "Windows":
+                            python_path = env_path / "python.exe"
+                        else:
+                            python_path = env_path / "bin" / "python"
+                        return python_path
+                        
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Fallback: construct path based on common conda structure
+            try:
+                conda_base = Path(sys.executable).parent.parent  # From current python to conda base
+                envs_dir = conda_base / "envs" / env_name
+                if platform.system() == "Windows":
+                    python_path = envs_dir / "python.exe"
+                else:
+                    python_path = envs_dir / "bin" / "python"
+                return python_path if python_path.exists() else None
+            except:
+                pass
+                
+        return None
     
     def install_dependencies(self):
         """Install Python dependencies"""
@@ -285,7 +341,7 @@ class VideoEvaluationSetup:
         print(f"📋 Installing from: {requirements_file}")
         
         # Install base requirements
-        success = self.run_command(f"{sys.executable} -m pip install -r {requirements_file}")
+        success = self.run_command(f"{self.python_executable} -m pip install -r {requirements_file}")
         
         if not success:
             print(f"{Colors.RED}❌ Failed to install base requirements{Colors.END}")
@@ -295,7 +351,7 @@ class VideoEvaluationSetup:
         if self.args.gpu:
             print(f"🎮 Installing GPU-specific packages...")
             gpu_success = self.run_command(
-                f"{sys.executable} -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
+                f"{self.python_executable} -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121"
             )
             if gpu_success:
                 print(f"{Colors.GREEN}✅ GPU packages installed{Colors.END}")
@@ -316,7 +372,7 @@ class VideoEvaluationSetup:
         print(f"🎯 Installing high priority packages for enhanced functionality...")
         for package in high_priority_packages:
             print(f"   Installing {package}...")
-            success = self.run_command(f"{sys.executable} -m pip install {package}", check=False)
+            success = self.run_command(f"{self.python_executable} -m pip install {package}", check=False)
             if success:
                 print(f"   ✅ {package.split('>=')[0]} installed successfully")
             else:
@@ -329,7 +385,7 @@ class VideoEvaluationSetup:
                 self._install_vbench()
             else:
                 print(f"   Installing {package}...")
-                success = self.run_command(f"{sys.executable} -m pip install {package}", check=False)
+                success = self.run_command(f"{self.python_executable} -m pip install {package}", check=False)
                 if success:
                     print(f"   ✅ {package} installed successfully")
                 else:
@@ -349,7 +405,7 @@ class VideoEvaluationSetup:
         
         print(f"🔧 Installing additional useful packages...")
         for package in extra_packages:
-            self.run_command(f"{sys.executable} -m pip install {package}", check=False)
+            self.run_command(f"{self.python_executable} -m pip install {package}", check=False)
         
         print(f"{Colors.GREEN}✅ Dependencies installed successfully{Colors.END}")
         self.dependencies_installed = True
@@ -369,7 +425,7 @@ class VideoEvaluationSetup:
             print(f"🚀 Using automated GIM installer: {gim_installer}")
             
             # Build command with proper arguments
-            cmd_parts = [sys.executable, str(gim_installer)]
+            cmd_parts = [self.python_executable, str(gim_installer)]
             if self.args.force:
                 cmd_parts.append("--force")
                 
@@ -382,7 +438,7 @@ class VideoEvaluationSetup:
             success = self._manual_gim_install()
         
         if success:
-            print(f"{Colors.GREEN}✅ GIM installed successfully - Enhanced image matching available!{Colors.END}")
+            print(f"{Colors.GREEN}✅ GIM installed successfully - Enhanced image matching available.{Colors.END}")
             self.gim_installed = True
             
             # Verify GIM installation
@@ -423,7 +479,7 @@ class VideoEvaluationSetup:
             
             # Install GIM with verbose output
             print(f"🔧 Installing GIM in development mode...")
-            success = self.run_command(f"{sys.executable} -m pip install -e . --verbose", cwd=gim_path)
+            success = self.run_command(f"{self.python_executable} -m pip install -e . --verbose", cwd=gim_path)
             
             if success:
                 print(f"✅ GIM installed successfully in development mode")
@@ -441,18 +497,18 @@ class VideoEvaluationSetup:
         print(f"   Installing VBench (video generation evaluation benchmark)...")
         
         # First try normal installation
-        success = self.run_command(f"{sys.executable} -m pip install vbench", check=False)
+        success = self.run_command(f"{self.python_executable} -m pip install vbench", check=False)
         if success:
             print(f"   ✅ VBench installed successfully (standard method)")
             return
         
         # If failed, try with --no-deps to bypass PyTorch version conflicts
         print(f"   ⚠️ Standard installation failed, trying compatibility mode...")
-        success = self.run_command(f"{sys.executable} -m pip install vbench --no-deps", check=False)
+        success = self.run_command(f"{self.python_executable} -m pip install vbench --no-deps", check=False)
         if success:
             print(f"   ✅ VBench installed successfully (compatibility mode)")
             # Test if VBench works
-            test_success = self.run_command(f"{sys.executable} -c 'from vbench import VBench; print(\"VBench functional\")'", check=False)
+            test_success = self.run_command(f"{self.python_executable} -c 'from vbench import VBench; print(\"VBench functional\")'", check=False)
             if test_success:
                 print(f"   ✅ VBench functionality verified")
             else:
@@ -471,25 +527,25 @@ class VideoEvaluationSetup:
             # Strategy 1: Try latest stable version
             {
                 "name": "Latest Stable Version",
-                "command": f"{sys.executable} -m pip install mediapipe>=0.10.0",
+                "command": f"{self.python_executable} -m pip install mediapipe>=0.10.0",
                 "description": "Standard MediaPipe installation"
             },
             # Strategy 2: Try without version constraint
             {
                 "name": "Any Available Version",
-                "command": f"{sys.executable} -m pip install mediapipe",
+                "command": f"{self.python_executable} -m pip install mediapipe",
                 "description": "MediaPipe without version constraint"
             },
             # Strategy 3: Try pre-release versions
             {
                 "name": "Pre-release Version",
-                "command": f"{sys.executable} -m pip install --pre mediapipe",
+                "command": f"{self.python_executable} -m pip install --pre mediapipe",
                 "description": "MediaPipe pre-release version"
             },
             # Strategy 4: Try with specific Python version compatibility
             {
                 "name": "Compatible Version",
-                "command": f"{sys.executable} -m pip install 'mediapipe>=0.8.0,<0.11.0'",
+                "command": f"{self.python_executable} -m pip install 'mediapipe>=0.8.0,<0.11.0'",
                 "description": "MediaPipe with version range"
             }
         ]
@@ -504,7 +560,7 @@ class VideoEvaluationSetup:
                 
                 # Verify installation
                 verify_success = self.run_command(
-                    f"{sys.executable} -c \"import mediapipe as mp; print(f'MediaPipe v{{mp.__version__}} ready')\"",
+                    f"{self.python_executable} -c \"import mediapipe as mp; print(f'MediaPipe v{{mp.__version__}} ready')\"",
                     check=False
                 )
                 if verify_success:
@@ -670,10 +726,10 @@ class VideoEvaluationSetup:
         print("-" * 50)
         
         verification_tests = [
-            ("Basic Import", "from evalutation.core.video_metrics_calculator import VideoMetricsCalculator"),
-            ("CLIP API", "from evalutation.apis.clip_api import CLIPVideoAPI"),
-            ("GIM Calculator", "from evalutation.calculators.gim_calculator import GIMMatchingCalculator"),
-            ("LSE Calculator", "from evalutation.calculators.lse_calculator import LSECalculator"),
+            ("Basic Import", "from core.video_metrics_calculator import VideoMetricsCalculator"),
+            ("CLIP API", "from apis.clip_api import CLIPVideoAPI"),
+            ("GIM Calculator", "from calculators.gim_calculator import GIMMatchingCalculator"),
+            ("LSE Calculator", "from calculators.lse_calculator import LSECalculator"),
         ]
         
         passed_tests = 0
@@ -681,7 +737,7 @@ class VideoEvaluationSetup:
         for test_name, test_code in verification_tests:
             try:
                 print(f"🧪 Testing {test_name}...")
-                test_result = self.run_command(f"{sys.executable} -c \"{test_code}\"", capture_output=True)
+                test_result = self.run_command(f"PYTHONPATH=. python -c \"{test_code}\"", capture_output=True)
                 if test_result is not None:
                     print(f"{Colors.GREEN}   ✅ {test_name} - OK{Colors.END}")
                     passed_tests += 1
@@ -695,7 +751,7 @@ class VideoEvaluationSetup:
         
         # Check GIM availability
         gim_check = self.run_command(
-            f"{sys.executable} -c \"from evalutation.calculators.gim_calculator import GIMMatchingCalculator; calc = GIMMatchingCalculator(); info = calc.get_model_info(); print(f'GIM available: {{info[\\\"gim_available\\\"]}}')\"",
+            f"PYTHONPATH=. python -c \"from calculators.gim_calculator import GIMMatchingCalculator; calc = GIMMatchingCalculator(); info = calc.get_model_info(); print(f'GIM available: {{info[\\\"gim_available\\\"]}}')\"",
             capture_output=True
         )
         if gim_check:
@@ -735,7 +791,7 @@ class VideoEvaluationSetup:
 
 #### 1. Basic Video Metrics
 ```python
-from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
+from core.video_metrics_calculator import VideoMetricsCalculator
 
 calculator = VideoMetricsCalculator()
 metrics = calculator.calculate_video_metrics(
@@ -785,7 +841,7 @@ python -m core.video_metrics_calculator \\
 4. Explore advanced features
 
 ### Troubleshooting
-- Check installation: `python -c "from evalutation.core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working!')"`
+- Check installation: `PYTHONPATH=. python -c "from core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working.')"`
 - Update dependencies: `pip install -r configs/requirements.txt --upgrade`
 - Reinstall GIM: `python utils/install_gim.py --force`
 
@@ -821,8 +877,8 @@ Happy evaluating! 🎬
         print(f"   4. Read documentation: docs/README.md")
         
         print(f"\n💡 Useful Commands:")
-        print(f"   • Test installation: python -c \"from evalutation.core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working!')\"")
-        print(f"   • Check GIM status: python -c \"from evalutation.calculators.gim_calculator import GIMMatchingCalculator; print(GIMMatchingCalculator().get_model_info())\"")
+        print(f"   • Test installation: PYTHONPATH=. python -c \"from core.video_metrics_calculator import VideoMetricsCalculator; print('✅ Working.')\"")
+        print(f"   • Check GIM status: PYTHONPATH=. python -c \"from calculators.gim_calculator import GIMMatchingCalculator; print(GIMMatchingCalculator().get_model_info())\"")
         print(f"   • Update toolkit: git pull origin main")
         
         print(f"\n{Colors.BLUE}📧 Support: fatinghong@gmail.com")

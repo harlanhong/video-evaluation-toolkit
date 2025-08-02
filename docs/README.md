@@ -68,6 +68,17 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
   - **Performance Tuning**: Configurable parameters for optimal speed-accuracy trade-offs.
   - **Memory Efficient**: Optimized memory usage for processing large video files.
 
+### ✅ Full Image vs Face Region Metrics (New) 🆕
+
+  - **Flexible Region Selection**: Choose between full image or face-only region for metric calculation.
+  - **Intelligent Face Detection**: Automatic face detection using MediaPipe, YOLOv8, OpenCV DNN, or Haar Cascade.
+  - **Configurable Face Padding**: Adjustable padding around detected face region (20% default).
+  - **Comprehensive Metrics**: PSNR, SSIM, and LPIPS for both full image and face region.
+  - **Use Case Optimization**: Full image for overall quality, face region for lip-sync and expression evaluation.
+  - **Smart Fallback**: Automatic fallback to full image metrics when face detection fails.
+  - **Performance Tracking**: Face detection success rate and method reporting.
+  - **Easy Integration**: Simple API parameter to switch between region modes.
+
 ## 📁 Directory Structure
 
 ```
@@ -96,7 +107,8 @@ evalutation/
 │   ├── basic_usage.py         # Basic usage example
 │   ├── advanced_metrics.py    # Advanced metrics usage example
 │   ├── clip_api_demo.py       # Comprehensive CLIP API demonstration
-│   └── gim_demo.py            # 🆕 Official GIM integration demonstration
+│   ├── gim_demo.py            # 🆕 Official GIM integration demonstration
+│   └── face_vs_full_image_demo.py # 🆕 Full image vs face region metrics demo
 ├── docs/                       # Documentation
 │   ├── README.md              # Main documentation (this file)
 │   ├── README_CN.md           # Chinese documentation
@@ -377,6 +389,53 @@ print(f"LSE Score (MediaPipe): {lse_score}")
 # Fallback detection methods available
 fallback_calculator = LSECalculator(face_detector='ultralytics')  # YOLOv8
 basic_calculator = LSECalculator(face_detector='opencv')  # Traditional
+```
+
+#### Full Image vs Face Region Metrics (New Feature) 🆕
+
+```python
+from evalutation.core.video_metrics_calculator import VideoMetricsCalculator
+import cv2
+
+# Initialize calculator with face detection
+calculator = VideoMetricsCalculator()
+
+# Load test frames (example)
+pred_frame = cv2.imread("prediction.jpg")
+gt_frame = cv2.imread("ground_truth.jpg")
+
+# Convert BGR to RGB
+pred_frame = cv2.cvtColor(pred_frame, cv2.COLOR_BGR2RGB)
+gt_frame = cv2.cvtColor(gt_frame, cv2.COLOR_BGR2RGB)
+
+# Option 1: Calculate metrics for FULL IMAGE
+full_metrics = calculator.calculate_frame_metrics(
+    pred_frame, gt_frame, 
+    region="full_image"
+)
+print(f"Full Image - PSNR: {full_metrics['psnr']:.2f} dB")
+print(f"Full Image - SSIM: {full_metrics['ssim']:.4f}")
+print(f"Full Image - LPIPS: {full_metrics['lpips']:.4f}")
+
+# Option 2: Calculate metrics for FACE REGION ONLY
+face_metrics = calculator.calculate_frame_metrics(
+    pred_frame, gt_frame, 
+    region="face_only",
+    face_padding=0.2  # 20% padding around detected face
+)
+
+if face_metrics['face_detected']:
+    print(f"Face Region - PSNR: {face_metrics['face_psnr']:.2f} dB")
+    print(f"Face Region - SSIM: {face_metrics['face_ssim']:.4f}")
+    print(f"Face Region - LPIPS: {face_metrics['face_lpips']:.4f}")
+    print(f"Face detector used: {calculator.face_detection_method}")
+else:
+    print("⚠️ No face detected, using full image metrics as fallback")
+
+# Use case guidance:
+# - Use "full_image" for overall video quality assessment
+# - Use "face_only" for lip-sync, facial expression evaluation
+# - Combine both for comprehensive analysis
 ```
 
 #### Full Metrics Calculation (with VBench)
