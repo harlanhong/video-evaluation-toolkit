@@ -134,6 +134,9 @@ models/*.pbtxt
 models/*.onnx
 models/*.tflite
 
+# External cloned repositories (can be reinstalled)
+gim/
+
 # Temporary/Cache directories
 cache/
 temp/
