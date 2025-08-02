@@ -33,11 +33,8 @@ from scipy.io import wavfile
 from scipy import signal
 from scipy.interpolate import interp1d
 import scenedetect
-from scenedetect.video_manager import VideoManager
-from scenedetect.scene_manager import SceneManager
+from scenedetect import detect, ContentDetector
 from scenedetect.frame_timecode import FrameTimecode
-from scenedetect.stats_manager import StatsManager
-from scenedetect.detectors import ContentDetector
 
 # Import local SyncNet modules
 try:
@@ -319,22 +316,42 @@ class LSECalculator:
         return dets
     
     def _detect_scenes(self, video_path: str) -> List[Tuple]:
-        """Detect scenes in a video."""
-        video_manager = VideoManager([video_path])
-        stats_manager = StatsManager()
-        scene_manager = SceneManager(stats_manager)
-        scene_manager.add_detector(ContentDetector())
-        base_timecode = video_manager.get_base_timecode()
-        
-        video_manager.set_downscale_factor()
-        video_manager.start()
-        scene_manager.detect_scenes(frame_source=video_manager)
-        scene_list = scene_manager.get_scene_list(base_timecode)
-        
-        if not scene_list:
-            scene_list = [(video_manager.get_base_timecode(), video_manager.get_current_timecode())]
-        
-        return scene_list
+        """Detect scenes in a video using the new PySceneDetect API."""
+        try:
+            # Use the new scenedetect.detect API
+            scene_list = detect(video_path, ContentDetector())
+            
+            # If no scenes detected, treat the entire video as one scene
+            if not scene_list:
+                # Open video to get duration information
+                import cv2
+                cap = cv2.VideoCapture(video_path)
+                if cap.isOpened():
+                    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+                    if fps > 0:
+                        duration_seconds = frame_count / fps
+                        start_time = FrameTimecode('00:00:00.000', fps=fps)
+                        end_time = FrameTimecode(timecode=duration_seconds, fps=fps)
+                        scene_list = [(start_time, end_time)]
+                    cap.release()
+                
+                # Fallback if we can't get video info
+                if not scene_list:
+                    fps = 25.0  # Default FPS
+                    start_time = FrameTimecode('00:00:00.000', fps=fps)
+                    end_time = FrameTimecode('00:00:10.000', fps=fps)  # Assume 10 second video
+                    scene_list = [(start_time, end_time)]
+            
+            return scene_list
+            
+        except Exception as e:
+            print(f"⚠️ Scene detection failed: {e}")
+            # Fallback: treat entire video as one scene
+            fps = 25.0  # Default FPS
+            start_time = FrameTimecode('00:00:00.000', fps=fps)
+            end_time = FrameTimecode('00:00:10.000', fps=fps)  # Assume 10 second video
+            return [(start_time, end_time)]
     
     def _track_faces(self, scene_faces: List[List[Dict]]) -> List[Dict]:
         """Track faces within a scene."""
