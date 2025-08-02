@@ -29,6 +29,16 @@ from pathlib import Path
 import platform
 import importlib.util
 
+# Read version from VERSION file
+def get_version():
+    """Read version from VERSION file"""
+    version_file = Path(__file__).parent / "VERSION"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "2.1.0"  # fallback version
+
+__version__ = get_version()
+
 
 class Colors:
     """Terminal colors for better output"""
@@ -90,7 +100,7 @@ class VideoEvaluationSetup:
     def print_header(self):
         """Print setup header"""
         print(f"\n{Colors.BOLD}{Colors.BLUE}=" * 70)
-        print("🎬 VIDEO EVALUATION TOOLKIT - ONE-CLICK SETUP")
+        print(f"🎬 VIDEO EVALUATION TOOLKIT v{__version__} - ONE-CLICK SETUP")
         print("=" * 70 + Colors.END)
         print(f"{Colors.GREEN}Advanced video quality assessment and synchronization evaluation{Colors.END}")
         print(f"{Colors.YELLOW}Copyright (c) 2025 Fating Hong <fatinghong@gmail.com>{Colors.END}")

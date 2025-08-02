@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive Video Metrics Calculator (VBench Integrated Version)
+Comprehensive Video Metrics Calculator v2.1.0 (VBench Integrated Version)
 Integrates LSE calculation, VBench metrics, and other video quality metrics
 
 Copyright (c) 2025 Fating Hong <fatinghong@gmail.com>
