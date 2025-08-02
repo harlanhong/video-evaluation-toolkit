@@ -95,8 +95,16 @@ class LSECalculator:
         
         # Determine model path
         if model_path is None:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            model_path = os.path.join(current_dir, "models", "syncnet_v2.model")
+            # First try main models directory
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            main_model_path = os.path.join(project_root, "models", "syncnet_v2.model")
+            
+            if os.path.exists(main_model_path):
+                model_path = main_model_path
+            else:
+                # Fallback to calculators/models (for backward compatibility)
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                model_path = os.path.join(current_dir, "models", "syncnet_v2.model")
         
         # Initialize SyncNet model
         print(f"🔄 Loading SyncNet model: {model_path}")

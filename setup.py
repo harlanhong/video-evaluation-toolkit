@@ -674,12 +674,10 @@ class VideoEvaluationSetup:
         calculators_models_dir = self.setup_dir / "calculators" / "models"
         calculators_models_dir.mkdir(parents=True, exist_ok=True)
         
-        # Copy SyncNet model for LSE calculator
+        # SyncNet model now uses main models/ directory directly (no copy needed)
         syncnet_src = self.models_dir / "syncnet_v2.model"
-        syncnet_dst = calculators_models_dir / "syncnet_v2.model"
         if syncnet_src.exists():
-            shutil.copy2(syncnet_src, syncnet_dst)
-            print(f"   ✅ SyncNet model → calculators/models/")
+            print(f"   ✅ SyncNet model available in models/")
         
         # Copy S3FD model 
         s3fd_src = self.models_dir / "sfd_face.pth"
