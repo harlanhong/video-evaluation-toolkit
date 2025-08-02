@@ -392,29 +392,42 @@ class VideoMetricsCalculator:
                     pred_lse_distance, pred_lse_confidence = self.lse_calculator.calculate_single_video(pred_path, verbose=False)
                     metrics['lse_distance'] = pred_lse_distance
                     metrics['lse_confidence'] = pred_lse_confidence
-                    print(f"   ✅ Pred LSE: distance={pred_lse_distance:.4f}, confidence={pred_lse_confidence:.4f}")
                     
-                    # Calculate LSE for GT video and MSE if GT is available
-                    if gt_path and os.path.exists(gt_path):
-                        print(f"🎵 Calculating GT LSE scores for: {os.path.basename(gt_path)}")
-                        try:
-                            gt_lse_distance, gt_lse_confidence = self.lse_calculator.calculate_single_video(gt_path, verbose=False)
-                            print(f"   ✅ GT LSE: distance={gt_lse_distance:.4f}, confidence={gt_lse_confidence:.4f}")
-                            
-                            # Calculate MSE between pred and GT LSE scores
-                            lse_d_mse = (pred_lse_distance - gt_lse_distance) ** 2
-                            lse_c_mse = (pred_lse_confidence - gt_lse_confidence) ** 2
-                            
-                            metrics['lse_d_mse'] = lse_d_mse
-                            metrics['lse_c_mse'] = lse_c_mse
-                            print(f"   📊 LSE MSE: distance_mse={lse_d_mse:.4f}, confidence_mse={lse_c_mse:.4f}")
-                            
-                        except Exception as e:
-                            print(f"⚠️ GT LSE calculation failed for {os.path.basename(gt_path)}: {e}")
+                    if pred_lse_distance is not None and pred_lse_confidence is not None:
+                        print(f"   ✅ Pred LSE: distance={pred_lse_distance:.4f}, confidence={pred_lse_confidence:.4f}")
+                        
+                        # Only proceed with GT calculation if pred LSE is valid
+                        # Calculate LSE for GT video and MSE if GT is available
+                        if gt_path and os.path.exists(gt_path):
+                            print(f"🎵 Calculating GT LSE scores for: {os.path.basename(gt_path)}")
+                            try:
+                                gt_lse_distance, gt_lse_confidence = self.lse_calculator.calculate_single_video(gt_path, verbose=False)
+                                
+                                if gt_lse_distance is not None and gt_lse_confidence is not None:
+                                    print(f"   ✅ GT LSE: distance={gt_lse_distance:.4f}, confidence={gt_lse_confidence:.4f}")
+                                    
+                                    # Calculate MSE between pred and GT LSE scores
+                                    lse_d_mse = (pred_lse_distance - gt_lse_distance) ** 2
+                                    lse_c_mse = (pred_lse_confidence - gt_lse_confidence) ** 2
+                                    
+                                    metrics['lse_d_mse'] = lse_d_mse
+                                    metrics['lse_c_mse'] = lse_c_mse
+                                    print(f"   📊 LSE MSE: distance_mse={lse_d_mse:.4f}, confidence_mse={lse_c_mse:.4f}")
+                                else:
+                                    print("   ⚠️ GT LSE calculation returned None values")
+                                    metrics['lse_d_mse'] = None
+                                    metrics['lse_c_mse'] = None
+                                    
+                            except Exception as e:
+                                print(f"⚠️ GT LSE calculation failed for {os.path.basename(gt_path)}: {e}")
+                                metrics['lse_d_mse'] = None
+                                metrics['lse_c_mse'] = None
+                        else:
+                            print("   ⚠️ No GT video available for LSE MSE calculation")
                             metrics['lse_d_mse'] = None
                             metrics['lse_c_mse'] = None
                     else:
-                        print("   ⚠️ No GT video available for LSE MSE calculation")
+                        print("   ⚠️ Pred LSE calculation returned None values")
                         metrics['lse_d_mse'] = None
                         metrics['lse_c_mse'] = None
                         
