@@ -193,7 +193,8 @@ class VideoMetricsCalculator:
     def calculate_video_metrics(self, 
                                pred_path: str, 
                                gt_path: Optional[str] = None,
-                               audio_path: Optional[str] = None) -> Dict[str, Any]:
+                               audio_path: Optional[str] = None,
+                               region: str = "face_only") -> Dict[str, Any]:
         """
         Calculate all metrics for a single video
         
@@ -201,6 +202,8 @@ class VideoMetricsCalculator:
             pred_path: Predicted video path
             gt_path: Ground truth video path (optional)
             audio_path: Audio file path (optional, deprecated)
+            region: "full_image" or "face_only" - region for PSNR/SSIM/LPIPS calculation
+                   (LSE and other metrics always use full image)
             
         Returns:
             Dictionary containing all metrics
@@ -235,10 +238,10 @@ class VideoMetricsCalculator:
             'motion_intensity': 0.0,     # Motion intensity
             'frame_difference': 0.0,     # Average frame difference
             
-            # Metrics requiring ground truth (face region only)
-            'face_psnr': None,        # Face region PSNR
-            'face_ssim': None,        # Face region SSIM  
-            'face_lpips': None,       # Face region LPIPS
+            # Metrics requiring ground truth (region depends on 'region' parameter)
+            'psnr': None,             # PSNR (full_image or face_only based on region param)
+            'ssim': None,             # SSIM (full_image or face_only based on region param)  
+            'lpips': None,            # LPIPS (full_image or face_only based on region param)
             
             # Lip sync metrics (using LSE calculator, no external audio needed)
             'lse_distance': None,     # LSE distance score
@@ -428,13 +431,13 @@ class VideoMetricsCalculator:
                     min_frames = min(len(pred_frames), len(gt_frames))
                     
                     for i in range(min_frames):
-                        frame_metrics = self.calculate_frame_metrics(pred_frames[i], gt_frames[i])
+                        frame_metrics = self.calculate_frame_metrics(pred_frames[i], gt_frames[i], region=region)
                         if frame_metrics:
                             frame_metrics_list.append(frame_metrics)
                     
                     if frame_metrics_list:
-                        # Calculate average values for face metrics
-                        for key in ['face_psnr', 'face_ssim', 'face_lpips']:
+                        # Calculate average values for image metrics (region-dependent)
+                        for key in ['psnr', 'ssim', 'lpips']:
                             values = [fm.get(key, 0.0) for fm in frame_metrics_list if fm.get(key, 0.0) > 0]
                             if values:
                                 metrics[key] = np.mean(values)
@@ -591,9 +594,9 @@ class VideoMetricsCalculator:
         gt_face_bbox = self.detect_face_bbox(gt_frame)
         
         metrics = {
-            'face_psnr': 0.0,
-            'face_ssim': 0.0,
-            'face_lpips': 0.0,
+            'psnr': 0.0,
+            'ssim': 0.0,
+            'lpips': 0.0,
             'region_used': 'face_only',
             'face_detected': False
         }
@@ -629,10 +632,10 @@ class VideoMetricsCalculator:
                 # Calculate face region PSNR
                 try:
                     face_psnr = peak_signal_noise_ratio(gt_face, pred_face, data_range=255)
-                    metrics['face_psnr'] = face_psnr
+                    metrics['psnr'] = face_psnr
                 except Exception as e:
                     print(f"   ⚠️ Face PSNR calculation failed: {e}")
-                    metrics['face_psnr'] = 0.0
+                    metrics['psnr'] = 0.0
                 
                 # Calculate face region SSIM
                 try:
@@ -642,10 +645,10 @@ class VideoMetricsCalculator:
                         data_range=255,
                         channel_axis=-1
                     )
-                    metrics['face_ssim'] = face_ssim
+                    metrics['ssim'] = face_ssim
                 except Exception as e:
                     print(f"   ⚠️ Face SSIM calculation failed: {e}")
-                    metrics['face_ssim'] = 0.0
+                    metrics['ssim'] = 0.0
                 
                 # Calculate face region LPIPS
                 try:
@@ -661,10 +664,10 @@ class VideoMetricsCalculator:
                     gt_tensor = gt_tensor.to(self.device)
                     
                     face_lpips = self.lpips_fn(pred_tensor, gt_tensor).item()
-                    metrics['face_lpips'] = face_lpips
+                    metrics['lpips'] = face_lpips
                 except Exception as e:
                     print(f"   ⚠️ Face LPIPS calculation failed: {e}")
-                    metrics['face_lpips'] = 0.0
+                    metrics['lpips'] = 0.0
         else:
             print("   ⚠️ No face detected in one or both frames, returning zero metrics")
         

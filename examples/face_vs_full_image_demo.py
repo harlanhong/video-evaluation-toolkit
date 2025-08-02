@@ -110,9 +110,9 @@ def demo_single_test():
     
     if face_metrics['face_detected']:
         print(f"   ✅ Face detected successfully")
-        print(f"   PSNR (face): {face_metrics['face_psnr']:.2f} dB")
-        print(f"   SSIM (face): {face_metrics['face_ssim']:.4f}")
-        print(f"   LPIPS (face): {face_metrics['face_lpips']:.4f}")
+        print(f"   PSNR (face): {face_metrics['psnr']:.2f} dB")
+        print(f"   SSIM (face): {face_metrics['ssim']:.4f}")
+        print(f"   LPIPS (face): {face_metrics['lpips']:.4f}")
     else:
         print(f"   ❌ No face detected")
     
@@ -201,13 +201,13 @@ def demo_video_comparison(pred_dir: str, gt_dir: str, max_videos: int = 3):
             
             if face_metrics['face_detected']:
                 result.update({
-                    'face_psnr': face_metrics['face_psnr'],
-                    'face_ssim': face_metrics['face_ssim'],
-                    'face_lpips': face_metrics['face_lpips']
+                    'face_psnr': face_metrics['psnr'],
+                    'face_ssim': face_metrics['ssim'],
+                    'face_lpips': face_metrics['lpips']
                 })
                 
                 print(f"   ✅ Full: PSNR={full_metrics['psnr']:.2f}, SSIM={full_metrics['ssim']:.4f}, LPIPS={full_metrics['lpips']:.4f}")
-                print(f"   ✅ Face: PSNR={face_metrics['face_psnr']:.2f}, SSIM={face_metrics['face_ssim']:.4f}, LPIPS={face_metrics['face_lpips']:.4f}")
+                print(f"   ✅ Face: PSNR={face_metrics['psnr']:.2f}, SSIM={face_metrics['ssim']:.4f}, LPIPS={face_metrics['lpips']:.4f}")
             else:
                 print(f"   ❌ No face detected, only full image metrics available")
                 result.update({
