@@ -9,6 +9,7 @@ Available Examples:
     - advanced_metrics.py: Advanced metrics usage examples
     - clip_api_demo.py: Comprehensive CLIP API demonstration
     - gim_demo.py: Official GIM integration demonstration
+    - installation_demo.py: Installation testing and demonstration
 """
 
 __all__ = []
