@@ -164,9 +164,9 @@ video-evaluation-toolkit/
 
 ### 🤖 Advanced AI Metrics (Optional)
 
-#### 🎨 CLIP Similarity Suite (`--clip`) - 多模态相似度计算
+#### 🎨 CLIP Similarity Suite (`--clip`) - Multi-Modal Similarity Computing
 
-##### 📊 Video-Video 相似度 (主要指标)
+##### 📊 Video-Video Similarity (Primary Metrics)
 | Metric | Description | Output Keys | Usage |
 |--------|-------------|-------------|-------|
 | **CLIP Similarity** | Average semantic similarity | `clip_similarity` | Primary similarity score (0-1, higher=better) |
@@ -174,16 +174,16 @@ video-evaluation-toolkit/
 | **CLIP Min/Max** | Minimum/Maximum similarity | `clip_similarity_min`, `clip_similarity_max` | Range analysis |
 | **CLIP Median** | Median similarity | `clip_similarity_median` | Robust central tendency |
 
-##### 🔧 CLIP API 完整功能
-| 功能类型 | API方法 | 输入 | 输出 | 用途 |
-|---------|---------|------|------|------|
-| **Image-Image** | `calculate_frame_similarity()` | 两个图像帧 | 余弦相似度 | 帧间语义相似度 |
-| **Video-Video** | `calculate_video_similarity()` | 两个视频文件 | 统计信息+逐帧相似度 | 视频语义相似度对比 |
-| **Text-Video** | `calculate_text_video_similarity()` | 文本+视频 | 文本-视频匹配度 | 内容描述匹配 |
-| **Batch Video** | `calculate_batch_video_similarity()` | 多个视频对 | 批量相似度结果 | 批量处理 |
-| **Feature Extract** | `extract_video_features()` | 视频文件 | CLIP特征向量 | 特征提取 |
-| **Text Features** | `extract_text_features()` | 文本描述 | CLIP文本特征 | 文本编码 |
-| **Image Features** | `extract_image_features()` | 图像/帧 | CLIP图像特征 | 图像编码 |
+##### 🔧 Complete CLIP API Functions
+| Function Type | API Method | Input | Output | Purpose |
+|---------------|------------|-------|--------|---------|
+| **Image-Image** | `calculate_frame_similarity()` | Two image frames | Cosine similarity | Frame semantic similarity |
+| **Video-Video** | `calculate_video_similarity()` | Two video files | Statistics + frame similarities | Video semantic comparison |
+| **Text-Video** | `calculate_text_video_similarity()` | Text + video | Text-video matching score | Content description matching |
+| **Batch Video** | `calculate_batch_video_similarity()` | Multiple video pairs | Batch similarity results | Batch processing |
+| **Feature Extract** | `extract_video_features()` | Video file | CLIP feature vectors | Feature extraction |
+| **Text Features** | `extract_text_features()` | Text descriptions | CLIP text features | Text encoding |
+| **Image Features** | `extract_image_features()` | Images/frames | CLIP image features | Image encoding |
 
 #### 🔥 VBench Suite (`--vbench`) - 6 Core Metrics
 | Metric | Description | Output Keys | Focus Area |
