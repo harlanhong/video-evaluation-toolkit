@@ -605,6 +605,15 @@ class VideoMetricsCalculator:
         if pred_face_bbox is not None and gt_face_bbox is not None:
             metrics['face_detected'] = True
             
+            # First, ensure both frames have the same size
+            if pred_frame.shape != gt_frame.shape:
+                gt_frame = cv2.resize(gt_frame, (pred_frame.shape[1], pred_frame.shape[0]))
+                # Re-detect face in resized GT frame to get correct coordinates
+                gt_face_bbox = self.detect_face_bbox(gt_frame)
+                if gt_face_bbox is None:
+                    print("   ⚠️ Face lost after resizing GT frame")
+                    return metrics
+            
             # Use the larger bounding box to ensure the full face is included
             x1 = min(pred_face_bbox[0], gt_face_bbox[0])
             y1 = min(pred_face_bbox[1], gt_face_bbox[1])
@@ -624,10 +633,6 @@ class VideoMetricsCalculator:
             if x2 > x1 and y2 > y1:  # Ensure a valid region
                 pred_face = pred_frame[y1:y2, x1:x2]
                 gt_face = gt_frame[y1:y2, x1:x2]
-                
-                # Ensure both face crops have the same size
-                if pred_face.shape != gt_face.shape:
-                    gt_face = cv2.resize(gt_face, (pred_face.shape[1], pred_face.shape[0]))
                 
                 # Calculate face region PSNR
                 try:
@@ -838,7 +843,8 @@ class VideoMetricsCalculator:
     def calculate_batch_metrics(self, 
                                pred_dir: str, 
                                gt_dir: Optional[str] = None,
-                               pattern: str = "*.mp4") -> List[Dict[str, Any]]:
+                               pattern: str = "*.mp4",
+                               region: str = "face_only") -> List[Dict[str, Any]]:
         """
         Batch calculate video metrics.
         
@@ -846,6 +852,7 @@ class VideoMetricsCalculator:
             pred_dir: Directory of predicted videos.
             gt_dir: Directory of ground truth videos (optional).
             pattern: File matching pattern.
+            region: Region for PSNR/SSIM/LPIPS calculation ("face_only" or "full_image").
             
         Returns:
             A list of metric results.
@@ -875,6 +882,13 @@ class VideoMetricsCalculator:
                     pred_name.split('_')[0] + '.mp4'
                 ]
                 
+                # Handle special case: RD_Radio16_000_RD_Radio16_000.wav_repeat-0_ia2v.mp4 -> RD_Radio16_000.mp4
+                if '_' in pred_name:
+                    parts = pred_name.split('_')
+                    if len(parts) >= 3:
+                        base_name = f"{parts[0]}_{parts[1]}_{parts[2]}.mp4"
+                        possible_names.append(base_name)
+                
                 for name in possible_names:
                     gt_path = os.path.join(gt_dir, name)
                     if os.path.exists(gt_path):
@@ -882,7 +896,7 @@ class VideoMetricsCalculator:
                         break
             
             # Calculate metrics
-            metrics = self.calculate_video_metrics(pred_file, gt_file)
+            metrics = self.calculate_video_metrics(pred_file, gt_file, region=region)
             results.append(metrics)
         
         return results
@@ -941,7 +955,7 @@ class VideoMetricsCalculator:
             "LSE Metrics": ['lse_distance', 'lse_confidence'],
             "VBench Metrics": ['subject_consistency', 'background_consistency', 'motion_smoothness',
                          'dynamic_degree', 'aesthetic_quality', 'imaging_quality'],
-            "Comparison Metrics": ['face_psnr', 'face_ssim', 'face_lpips']
+            "Comparison Metrics": ['psnr', 'ssim', 'lpips']
         }
         
         # Filter successful results
@@ -1014,8 +1028,8 @@ class VideoMetricsCalculator:
             print(f"\n📈 Metrics Statistics:")
             
             # Display by groups
-            print(f"\n🔍 Face Comparison Metrics:")
-            for key in ['face_psnr', 'face_ssim', 'face_lpips']:
+            print(f"\n🔍 Image Quality Metrics (Face Region):")
+            for key in ['psnr', 'ssim', 'lpips']:
                 if key in stats:
                     stat = stats[key]
                     print(f"  {key}:")
@@ -1102,6 +1116,7 @@ def main():
     parser.add_argument("--fvd", action="store_true", help="Enable FVD calculation")
     parser.add_argument("--gim", action="store_true", help="Enable GIM matching calculation")
     parser.add_argument("--all_advanced", action="store_true", help="Enable all advanced metrics (CLIP, FVD, GIM)")
+    parser.add_argument("--region", type=str, default="face_only", choices=["face_only", "full_image"], help="Region for PSNR/SSIM/LPIPS calculation")
     
     args = parser.parse_args()
     
@@ -1127,7 +1142,8 @@ def main():
         results = calculator.calculate_batch_metrics(
             pred_dir=args.pred_dir,
             gt_dir=args.gt_dir,
-            pattern=args.pattern
+            pattern=args.pattern,
+            region=args.region
         )
         
         # Save results
