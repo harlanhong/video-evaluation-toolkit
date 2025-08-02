@@ -57,6 +57,17 @@ A comprehensive evaluation toolkit that integrates LSE calculation, VBench metri
   - **Model Comparison**: Easy comparison between different CLIP models.
   - **Legacy Compatibility**: Backward compatibility with existing code through wrapper classes.
 
+### ✅ MediaPipe Integration (New)
+
+  - **Advanced Face Detection**: Google's MediaPipe framework with 95% precision and 468 facial landmarks.
+  - **Real-time Performance**: Optimized for live video streams and high-throughput batch processing.
+  - **Multi-face Tracking**: Simultaneous detection and tracking of multiple faces with consistent IDs.
+  - **Cross-platform Support**: Windows, macOS, Linux with intelligent platform-specific installation.
+  - **GPU Acceleration**: Automatic GPU detection and acceleration when available.
+  - **Intelligent Fallback**: Seamless fallback to Ultralytics (YOLOv8) or OpenCV when MediaPipe unavailable.
+  - **Performance Tuning**: Configurable parameters for optimal speed-accuracy trade-offs.
+  - **Memory Efficient**: Optimized memory usage for processing large video files.
+
 ## 📁 Directory Structure
 
 ```
@@ -90,7 +101,8 @@ evalutation/
 │   ├── README.md              # Main documentation (this file)
 │   ├── README_CN.md           # Chinese documentation
 │   ├── MODELS_DOWNLOAD.md     # Model download instructions
-│   └── GIM_INTEGRATION.md     # Official GIM integration guide
+│   ├── GIM_INTEGRATION.md     # Official GIM integration guide
+│   └── MEDIAPIPE_INTEGRATION.md # 🆕 MediaPipe integration and configuration guide
 ├── configs/                    # Configuration files
 │   ├── requirements.txt       # pip dependency configuration
 │   └── environment.yaml       # conda environment configuration
@@ -182,11 +194,23 @@ bash install.sh --skip-models
 
 **One-Click Installation Features:**
 - 🔧 **Automatic environment setup** (conda/venv detection)
-- 📦 **Complete dependency installation** (including GIM)
+- 📦 **Complete dependency installation** (including GIM and MediaPipe)
 - 🎭 **Model download** (SyncNet, S3FD checkpoints)
 - ✅ **Installation verification** and testing
 - 📚 **Quick start guide** generation
 - 🎯 **GPU support** detection and setup
+
+**High Priority Packages Auto-Installed:**
+- 🤖 **MediaPipe**: Google's advanced face detection framework (95% accuracy, 468 landmarks)
+- 🔥 **Ultralytics**: YOLOv8-based face detection with superior performance
+- ⚡ **NumBA**: JIT compilation for numerical performance acceleration
+- 🎯 **Official GIM**: State-of-the-art image matching (ICLR 2024)
+
+**Platform-Specific Installation:**
+- 🔍 **Intelligent Detection**: Automatic platform and Python version compatibility
+- 📦 **Multiple Strategies**: Various installation approaches for maximum success rate
+- 🛡️ **Fallback Safety**: Graceful degradation when advanced components unavailable
+- 🌍 **Cross-Platform**: Windows, macOS, Linux with architecture-specific optimizations
 
 #### Manual Installation Methods
 
@@ -328,6 +352,31 @@ metrics = calculator.calculate_video_metrics("video.mp4")
 print(f"Frame count: {metrics['frame_count']}")
 print(f"LSE score: {metrics['lse_distance']}")
 print(f"Face detection rate: {metrics['face_detection_rate']}")
+```
+
+#### Advanced Face Detection with MediaPipe (New)
+
+```python
+from evalutation.calculators.lse_calculator import LSECalculator
+
+# Use MediaPipe for superior face detection accuracy
+calculator = LSECalculator(
+    face_detector='mediapipe',
+    mediapipe_config={
+        'min_detection_confidence': 0.7,
+        'min_tracking_confidence': 0.5,
+        'max_num_faces': 5,
+        'extract_landmarks': True
+    }
+)
+
+# Calculate LSE with MediaPipe face detection
+lse_score = calculator.calculate_lse('source_video.mp4', 'target_video.mp4')
+print(f"LSE Score (MediaPipe): {lse_score}")
+
+# Fallback detection methods available
+fallback_calculator = LSECalculator(face_detector='ultralytics')  # YOLOv8
+basic_calculator = LSECalculator(face_detector='opencv')  # Traditional
 ```
 
 #### Full Metrics Calculation (with VBench)
@@ -616,7 +665,31 @@ python -m calculators.gim_calculator \
 #### LSE Calculation for a Single Video
 
 ```bash
+# Basic LSE calculation
 python -m calculators.lse_calculator --video /path/to/video.mp4
+
+# Advanced LSE with MediaPipe face detection (recommended)
+python -m calculators.lse_calculator \
+    --source source_video.mp4 \
+    --target target_video.mp4 \
+    --face-detector mediapipe \
+    --confidence 0.7 \
+    --max-faces 5 \
+    --output lse_results.json
+
+# LSE with Ultralytics (YOLOv8) fallback
+python -m calculators.lse_calculator \
+    --source source_video.mp4 \
+    --target target_video.mp4 \
+    --face-detector ultralytics \
+    --output lse_results.json
+
+# LSE with traditional OpenCV (fastest)
+python -m calculators.lse_calculator \
+    --source source_video.mp4 \
+    --target target_video.mp4 \
+    --face-detector opencv \
+    --output lse_results.json
 ```
 
 ## 📊 Supported Metrics

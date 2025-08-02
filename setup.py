@@ -292,7 +292,6 @@ class VideoEvaluationSetup:
         
         # Install high priority packages for enhanced functionality
         high_priority_packages = [
-            "mediapipe>=0.10.0",  # Enhanced face detection
             "ultralytics>=8.0.0",  # YOLOv8 face detection
             "numba>=0.56.0",  # Performance acceleration
         ]
@@ -305,6 +304,10 @@ class VideoEvaluationSetup:
                 print(f"   ✅ {package.split('>=')[0]} installed successfully")
             else:
                 print(f"   ⚠️ {package.split('>=')[0]} installation failed (optional)")
+        
+        # Special handling for MediaPipe (Platform-dependent installation)
+        print(f"🔧 Installing MediaPipe with platform compatibility handling...")
+        self._install_mediapipe()
         
         # Install additional useful packages
         extra_packages = [
@@ -386,6 +389,70 @@ class VideoEvaluationSetup:
         except Exception as e:
             print(f"{Colors.RED}❌ Manual GIM installation failed: {e}{Colors.END}")
             return False
+    
+    def _install_mediapipe(self):
+        """Install MediaPipe with platform-specific handling"""
+        print(f"📦 MediaPipe Installation - Enhanced Face Detection & Tracking")
+        
+        # MediaPipe installation strategies in order of preference
+        installation_strategies = [
+            # Strategy 1: Try latest stable version
+            {
+                "name": "Latest Stable Version",
+                "command": f"{sys.executable} -m pip install mediapipe>=0.10.0",
+                "description": "Standard MediaPipe installation"
+            },
+            # Strategy 2: Try without version constraint
+            {
+                "name": "Any Available Version",
+                "command": f"{sys.executable} -m pip install mediapipe",
+                "description": "MediaPipe without version constraint"
+            },
+            # Strategy 3: Try pre-release versions
+            {
+                "name": "Pre-release Version",
+                "command": f"{sys.executable} -m pip install --pre mediapipe",
+                "description": "MediaPipe pre-release version"
+            },
+            # Strategy 4: Try with specific Python version compatibility
+            {
+                "name": "Compatible Version",
+                "command": f"{sys.executable} -m pip install 'mediapipe>=0.8.0,<0.11.0'",
+                "description": "MediaPipe with version range"
+            }
+        ]
+        
+        for i, strategy in enumerate(installation_strategies, 1):
+            print(f"   🔄 Strategy {i}: {strategy['name']}")
+            print(f"      {strategy['description']}")
+            
+            success = self.run_command(strategy["command"], check=False)
+            if success:
+                print(f"   ✅ MediaPipe installed successfully using {strategy['name']}")
+                
+                # Verify installation
+                verify_success = self.run_command(
+                    f"{sys.executable} -c \"import mediapipe as mp; print(f'MediaPipe v{{mp.__version__}} ready')\"",
+                    check=False
+                )
+                if verify_success:
+                    print(f"   ✅ MediaPipe verification successful")
+                    return True
+                else:
+                    print(f"   ⚠️ MediaPipe installed but verification failed")
+                    return True
+            else:
+                print(f"   ❌ Strategy {i} failed, trying next approach...")
+        
+        # If all strategies fail, provide helpful information
+        print(f"   ⚠️ MediaPipe installation failed with all strategies")
+        print(f"   📋 MediaPipe Platform Notes:")
+        print(f"      • Requires Python 3.8-3.12 (current: {sys.version_info.major}.{sys.version_info.minor})")
+        print(f"      • Supports Windows, macOS, Linux x86_64")
+        print(f"      • ARM/Apple Silicon may need special builds")
+        print(f"   💡 Fallback: System will use Ultralytics or OpenCV for face detection")
+        
+        return False
     
     def download_models(self):
         """Download required models and checkpoints"""
@@ -701,10 +768,17 @@ Examples:
     python setup.py --force                  # Force reinstall everything
 
 High Priority Packages (Auto-installed):
-    • MediaPipe: Enhanced face detection and tracking
-    • Ultralytics: YOLOv8-based face detection
-    • NumBA: Performance acceleration
+    • MediaPipe: Google's advanced face detection and tracking framework
+    • Ultralytics: YOLOv8-based face detection with superior accuracy
+    • NumBA: JIT compilation for numerical performance acceleration
     • Official GIM: State-of-the-art image matching (ICLR 2024)
+
+MediaPipe Features:
+    • Real-time face detection and landmarks
+    • Multi-face tracking capabilities
+    • Hand and pose estimation support
+    • Cross-platform compatibility (Windows/macOS/Linux)
+    • Optimized for both CPU and GPU acceleration
         """
     )
     

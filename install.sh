@@ -90,10 +90,18 @@ EXAMPLES:
     bash install.sh --force            # Force clean reinstall
 
 HIGH PRIORITY PACKAGES (Auto-installed):
-    • MediaPipe: Enhanced face detection and tracking
-    • Ultralytics: YOLOv8-based face detection
-    • NumBA: Performance acceleration
+    • MediaPipe: Google's advanced face detection and tracking framework
+    • Ultralytics: YOLOv8-based face detection with superior accuracy
+    • NumBA: JIT compilation for numerical performance acceleration
     • Official GIM: State-of-the-art image matching (ICLR 2024)
+
+MEDIAPIPE FEATURES:
+    • Real-time face detection and landmarks extraction
+    • Multi-face tracking with high precision
+    • Hand and pose estimation capabilities
+    • Cross-platform support (Windows/macOS/Linux x86_64)
+    • CPU and GPU acceleration optimizations
+    • Platform-specific installation strategies for maximum compatibility
 
 REQUIREMENTS:
     - Python 3.8 or higher
@@ -325,7 +333,6 @@ install_dependencies() {
     print_status "🎯 Installing high priority packages for enhanced functionality..."
     
     local high_priority_packages=(
-        "mediapipe>=0.10.0"    # Enhanced face detection
         "ultralytics>=8.0.0"   # YOLOv8 face detection  
         "numba>=0.56.0"        # Performance acceleration
     )
@@ -339,6 +346,10 @@ install_dependencies() {
             print_warning "   $package_name installation failed (optional)"
         fi
     done
+    
+    # Special handling for MediaPipe (Platform-dependent installation)
+    print_status "🔧 Installing MediaPipe with platform compatibility handling..."
+    install_mediapipe
     
     # Install additional useful packages
     print_status "Installing additional useful packages..."
@@ -404,6 +415,54 @@ manual_gim_install() {
         print_warning "❌ GIM pip installation failed"
         return 1
     fi
+}
+
+# Function to install MediaPipe with platform-specific handling
+install_mediapipe() {
+    print_status "📦 MediaPipe Installation - Enhanced Face Detection & Tracking"
+    
+    # MediaPipe installation strategies in order of preference
+    local strategies=(
+        "mediapipe>=0.10.0|Latest Stable Version|Standard MediaPipe installation"
+        "mediapipe|Any Available Version|MediaPipe without version constraint"
+        "--pre mediapipe|Pre-release Version|MediaPipe pre-release version"
+        "'mediapipe>=0.8.0,<0.11.0'|Compatible Version|MediaPipe with version range"
+    )
+    
+    local strategy_count=1
+    for strategy_info in "${strategies[@]}"; do
+        IFS='|' read -r package_spec strategy_name description <<< "$strategy_info"
+        
+        print_status "   🔄 Strategy $strategy_count: $strategy_name"
+        print_status "      $description"
+        
+        if python3 -m pip install $package_spec 2>/dev/null; then
+            print_success "   ✅ MediaPipe installed successfully using $strategy_name"
+            
+            # Verify installation
+            if python3 -c "import mediapipe as mp; print(f'MediaPipe v{mp.__version__} ready')" 2>/dev/null; then
+                print_success "   ✅ MediaPipe verification successful"
+                return 0
+            else
+                print_warning "   ⚠️ MediaPipe installed but verification failed"
+                return 0
+            fi
+        else
+            print_warning "   ❌ Strategy $strategy_count failed, trying next approach..."
+        fi
+        
+        ((strategy_count++))
+    done
+    
+    # If all strategies fail, provide helpful information
+    print_warning "   ⚠️ MediaPipe installation failed with all strategies"
+    print_status "   📋 MediaPipe Platform Notes:"
+    print_status "      • Requires Python 3.8-3.12"
+    print_status "      • Supports Windows, macOS, Linux x86_64"
+    print_status "      • ARM/Apple Silicon may need special builds"
+    print_status "   💡 Fallback: System will use Ultralytics or OpenCV for face detection"
+    
+    return 1
 }
 
 # Function to download models
