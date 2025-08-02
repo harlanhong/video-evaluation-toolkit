@@ -1,6 +1,6 @@
-# 📚 APIs Module Documentation
+# 📚 APIs Module Documentation v2.1.0
 
-This module provides unified API interfaces for video evaluation tasks.
+This module provides unified API interfaces for video evaluation tasks with enhanced face detection and region-specific metrics.
 
 ## 🎯 Overview
 
@@ -111,6 +111,44 @@ calculator = VideoMetricsCalculator(
     enable_vbench=True,
     enable_gim_matching=True
 )
+
+# NEW in v2.1.0: Region-specific metrics
+metrics = calculator.calculate_video_metrics(
+    pred_path="video.mp4",
+    gt_path="reference.mp4", 
+    region="face_only"  # 🆕 Choose between "face_only" or "full_image"
+)
+```
+
+## 🆕 What's New in v2.1.0
+
+### Enhanced Face Detection API
+- **Multiple fallback detectors**: MediaPipe → YOLOv8 → OpenCV DNN → Haar Cascade
+- **Region-specific calculations**: Choose between face-only or full-image metrics
+- **Fixed metric calculation**: Realistic PSNR/SSIM/LPIPS values (PSNR: 9.6→27.7 dB)
+- **Cross-resolution support**: Automatic GT frame resizing for accurate face alignment
+
+### Updated Method Signatures
+
+```python
+# Enhanced calculate_frame_metrics with region parameter
+def calculate_frame_metrics(
+    self, 
+    pred_frame: np.ndarray, 
+    gt_frame: np.ndarray,
+    region: str = "face_only"  # 🆕 New parameter
+) -> Dict[str, float]:
+    """
+    Calculate image quality metrics for specified region.
+    
+    Args:
+        pred_frame: Predicted frame (H, W, 3) RGB
+        gt_frame: Ground truth frame (H, W, 3) RGB  
+        region: "face_only" or "full_image"
+        
+    Returns:
+        Dictionary with psnr, ssim, lpips scores
+    """
 ```
 
 ## 📖 More Examples
