@@ -24,7 +24,13 @@ from pathlib import Path
 def run_command(cmd, cwd=None, capture_output=True):
     """Run command and return result"""
     try:
-        result = subprocess.run(cmd, shell=True, cwd=cwd, 
+        # Set PYTHONPATH to include parent directory for package imports
+        env = os.environ.copy()
+        if 'evalutation' in os.getcwd():
+            parent_dir = str(Path(os.getcwd()).parent)
+            env['PYTHONPATH'] = parent_dir + (os.pathsep + env.get('PYTHONPATH', ''))
+        
+        result = subprocess.run(cmd, shell=True, cwd=cwd, env=env,
                               capture_output=capture_output, text=True, check=True)
         return result.stdout.strip() if capture_output else True
     except subprocess.CalledProcessError as e:
@@ -76,8 +82,8 @@ python -c "
 from evalutation.calculators.gim_calculator import GIMMatchingCalculator
 calc = GIMMatchingCalculator()
 info = calc.get_model_info()
-print(f'Available: {info[\"gim_available\"]}')
-print(f'Type: {info[\"matcher_type\"]}')
+print(f'Available: {info[\\\"gim_available\\\"]}')
+print(f'Type: {info[\\\"matcher_type\\\"]}')
 "
 """)
     

@@ -53,10 +53,14 @@ from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 try:
     # Use relative import when imported as package
     from ..calculators.lse_calculator import LSECalculator
-    from ..calculators.vbench_calculator import VBenchDirect
     from ..calculators.fvd_calculator import FVDCalculator
     from ..calculators.gim_calculator import GIMMatchingCalculator
     from ..apis.clip_api import CLIPVideoAPI
+    # VBench is optional
+    try:
+        from ..calculators.vbench_calculator import VBenchDirect
+    except ImportError:
+        VBenchDirect = None
 except ImportError:
     # Use absolute import when run directly
     import sys
@@ -64,10 +68,14 @@ except ImportError:
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.append(parent_dir)
     from calculators.lse_calculator import LSECalculator
-    from calculators.vbench_calculator import VBenchDirect
     from calculators.fvd_calculator import FVDCalculator
     from calculators.gim_calculator import GIMMatchingCalculator
     from apis.clip_api import CLIPVideoAPI
+    # VBench is optional
+    try:
+        from calculators.vbench_calculator import VBenchDirect
+    except ImportError:
+        VBenchDirect = None
 
 
 class VideoMetricsCalculator:
@@ -119,7 +127,7 @@ class VideoMetricsCalculator:
             self.lse_available = False
         
         # Initialize VBench calculator
-        if self.enable_vbench:
+        if self.enable_vbench and VBenchDirect is not None:
             print("🔄 Initializing VBench calculator...")
             try:
                 self.vbench_calculator = VBenchDirect(device=self.device)
@@ -129,6 +137,8 @@ class VideoMetricsCalculator:
                 print(f"⚠️ VBench calculator initialization failed: {e}")
                 self.vbench_available = False
         else:
+            if self.enable_vbench and VBenchDirect is None:
+                print("⚠️ VBench not available (module not installed)")
             self.vbench_available = False
         
         # Initialize CLIP API
