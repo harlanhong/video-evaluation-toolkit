@@ -290,6 +290,22 @@ class VideoEvaluationSetup:
             else:
                 print(f"{Colors.YELLOW}⚠️ GPU package installation failed, continuing with CPU version{Colors.END}")
         
+        # Install high priority packages for enhanced functionality
+        high_priority_packages = [
+            "mediapipe>=0.10.0",  # Enhanced face detection
+            "ultralytics>=8.0.0",  # YOLOv8 face detection
+            "numba>=0.56.0",  # Performance acceleration
+        ]
+        
+        print(f"🎯 Installing high priority packages for enhanced functionality...")
+        for package in high_priority_packages:
+            print(f"   Installing {package}...")
+            success = self.run_command(f"{sys.executable} -m pip install {package}", check=False)
+            if success:
+                print(f"   ✅ {package.split('>=')[0]} installed successfully")
+            else:
+                print(f"   ⚠️ {package.split('>=')[0]} installation failed (optional)")
+        
         # Install additional useful packages
         extra_packages = [
             "jupyter",  # For notebooks
@@ -307,9 +323,12 @@ class VideoEvaluationSetup:
         return True
     
     def install_gim(self):
-        """Install official GIM implementation"""
-        print(f"{Colors.BOLD}🔍 STEP 4: Installing Official GIM{Colors.END}")
+        """Install official GIM implementation (High Priority)"""
+        print(f"{Colors.BOLD}🔍 STEP 4: Installing Official GIM (High Priority){Colors.END}")
         print("-" * 50)
+        
+        print(f"🎯 GIM is a high-priority component for state-of-the-art image matching")
+        print(f"   Installing official GIM implementation from ICLR 2024...")
         
         gim_installer = self.setup_dir / "utils" / "install_gim.py"
         
@@ -322,31 +341,47 @@ class VideoEvaluationSetup:
             success = self._manual_gim_install()
         
         if success:
-            print(f"{Colors.GREEN}✅ GIM installed successfully{Colors.END}")
+            print(f"{Colors.GREEN}✅ GIM installed successfully - Enhanced image matching available!{Colors.END}")
             self.gim_installed = True
         else:
             print(f"{Colors.YELLOW}⚠️ GIM installation failed, will use fallback implementation{Colors.END}")
+            print(f"   You can install GIM later with: python utils/install_gim.py")
             self.gim_installed = False
         
         return True  # Don't fail setup if GIM fails
     
     def _manual_gim_install(self):
-        """Manual GIM installation"""
+        """Manual GIM installation with enhanced error handling"""
         gim_path = self.setup_dir / "gim"
         
         try:
             if gim_path.exists() and self.args.force:
+                print(f"🗑️ Removing existing GIM installation...")
                 shutil.rmtree(gim_path)
             
             if not gim_path.exists():
-                # Clone GIM repository
-                success = self.run_command(f"git clone https://github.com/xuelunshen/gim.git {gim_path}")
+                print(f"📥 Cloning GIM repository from GitHub...")
+                # Clone GIM repository with progress
+                success = self.run_command(f"git clone --progress https://github.com/xuelunshen/gim.git {gim_path}")
                 if not success:
+                    print(f"❌ Failed to clone GIM repository")
                     return False
+                print(f"✅ GIM repository cloned successfully")
+            else:
+                print(f"📁 GIM repository already exists, updating...")
+                # Update existing repository
+                self.run_command("git pull origin main", cwd=gim_path, check=False)
             
-            # Install GIM
-            success = self.run_command(f"{sys.executable} -m pip install -e .", cwd=gim_path)
-            return success
+            # Install GIM with verbose output
+            print(f"🔧 Installing GIM in development mode...")
+            success = self.run_command(f"{sys.executable} -m pip install -e . --verbose", cwd=gim_path)
+            
+            if success:
+                print(f"✅ GIM installed successfully in development mode")
+                return True
+            else:
+                print(f"❌ GIM pip installation failed")
+                return False
             
         except Exception as e:
             print(f"{Colors.RED}❌ Manual GIM installation failed: {e}{Colors.END}")
@@ -661,9 +696,15 @@ Examples:
     python setup.py --mode conda             # Use conda environment
     python setup.py --mode venv              # Use virtual environment
     python setup.py --mode pip               # Use pip only (no env)
-    python setup.py --gpu                    # Install GPU support
+    python setup.py --gpu                    # Install GPU support + high priority packages
     python setup.py --skip-models            # Skip model downloads
     python setup.py --force                  # Force reinstall everything
+
+High Priority Packages (Auto-installed):
+    • MediaPipe: Enhanced face detection and tracking
+    • Ultralytics: YOLOv8-based face detection
+    • NumBA: Performance acceleration
+    • Official GIM: State-of-the-art image matching (ICLR 2024)
         """
     )
     

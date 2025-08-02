@@ -85,9 +85,15 @@ OPTIONS:
 EXAMPLES:
     bash install.sh                    # Auto-detect best installation method
     bash install.sh --mode conda       # Use conda environment
-    bash install.sh --gpu              # Install with GPU support
+    bash install.sh --gpu              # Install with GPU support + high priority packages
     bash install.sh --skip-models      # Skip model downloads
     bash install.sh --force            # Force clean reinstall
+
+HIGH PRIORITY PACKAGES (Auto-installed):
+    • MediaPipe: Enhanced face detection and tracking
+    • Ultralytics: YOLOv8-based face detection
+    • NumBA: Performance acceleration
+    • Official GIM: State-of-the-art image matching (ICLR 2024)
 
 REQUIREMENTS:
     - Python 3.8 or higher
@@ -315,6 +321,25 @@ install_dependencies() {
         }
     fi
     
+    # Install high priority packages for enhanced functionality
+    print_status "🎯 Installing high priority packages for enhanced functionality..."
+    
+    local high_priority_packages=(
+        "mediapipe>=0.10.0"    # Enhanced face detection
+        "ultralytics>=8.0.0"   # YOLOv8 face detection  
+        "numba>=0.56.0"        # Performance acceleration
+    )
+    
+    for package in "${high_priority_packages[@]}"; do
+        package_name=${package%%>=*}
+        print_status "Installing $package..."
+        if python3 -m pip install "$package" 2>/dev/null; then
+            print_success "   $package_name installed successfully"
+        else
+            print_warning "   $package_name installation failed (optional)"
+        fi
+    done
+    
     # Install additional useful packages
     print_status "Installing additional useful packages..."
     python3 -m pip install jupyter matplotlib seaborn tqdm 2>/dev/null || true
@@ -324,23 +349,27 @@ install_dependencies() {
 
 # Function to install GIM
 install_gim() {
-    echo -e "${BOLD}🔍 STEP 4: Installing Official GIM${NC}"
+    echo -e "${BOLD}🔍 STEP 4: Installing Official GIM (High Priority)${NC}"
     echo "$(printf -- '-%.0s' {1..50})"
+    
+    print_status "🎯 GIM is a high-priority component for state-of-the-art image matching"
+    print_status "   Installing official GIM implementation from ICLR 2024..."
     
     local gim_installer="$SCRIPT_DIR/utils/install_gim.py"
     
     if [[ -f "$gim_installer" ]]; then
-        print_status "Using automated GIM installer..."
+        print_status "🚀 Using automated GIM installer..."
         local force_flag=""
         [[ "$FORCE_INSTALL" == true ]] && force_flag="--force"
         
         if python3 "$gim_installer" $force_flag; then
-            print_success "GIM installed successfully"
+            print_success "GIM installed successfully - Enhanced image matching available!"
         else
             print_warning "GIM installation failed, will use fallback implementation"
+            print_warning "   You can install GIM later with: python utils/install_gim.py"
         fi
     else
-        print_status "Manual GIM installation..."
+        print_status "📥 Manual GIM installation..."
         manual_gim_install
     fi
 }
@@ -350,24 +379,31 @@ manual_gim_install() {
     local gim_path="$SCRIPT_DIR/gim"
     
     if [[ -d "$gim_path" && "$FORCE_INSTALL" == true ]]; then
+        print_status "🗑️ Removing existing GIM installation..."
         rm -rf "$gim_path"
     fi
     
     if [[ ! -d "$gim_path" ]]; then
-        print_status "Cloning GIM repository..."
-        git clone https://github.com/xuelunshen/gim.git "$gim_path" || {
-            print_warning "Failed to clone GIM repository"
+        print_status "📥 Cloning GIM repository from GitHub..."
+        if git clone --progress https://github.com/xuelunshen/gim.git "$gim_path"; then
+            print_success "✅ GIM repository cloned successfully"
+        else
+            print_warning "❌ Failed to clone GIM repository"
             return 1
-        }
+        fi
+    else
+        print_status "📁 GIM repository already exists, updating..."
+        (cd "$gim_path" && git pull origin main 2>/dev/null) || true
     fi
     
-    print_status "Installing GIM..."
-    (cd "$gim_path" && python3 -m pip install -e .) || {
-        print_warning "Manual GIM installation failed"
+    print_status "🔧 Installing GIM in development mode..."
+    if (cd "$gim_path" && python3 -m pip install -e . --verbose); then
+        print_success "✅ GIM installed successfully in development mode"
+        return 0
+    else
+        print_warning "❌ GIM pip installation failed"
         return 1
-    }
-    
-    print_success "GIM installed manually"
+    fi
 }
 
 # Function to download models

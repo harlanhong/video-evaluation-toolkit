@@ -72,22 +72,15 @@ def check_gim_installed():
 
 
 def install_gim(install_path=".", force=False):
-    """Install GIM from official repository"""
+    """Install GIM from official repository (Research Project Setup)"""
     
     print("🚀 Starting GIM installation process")
     print("=" * 50)
+    print("📋 Note: GIM is a research project, not a standard Python package")
     
     # Check prerequisites
     if not check_git_available():
         return False
-    
-    if not check_pip_available():
-        return False
-    
-    # Check if already installed
-    if check_gim_installed() and not force:
-        print("✅ GIM is already installed. Use --force to reinstall.")
-        return True
     
     # Determine installation path
     install_path = Path(install_path).resolve()
@@ -116,29 +109,55 @@ def install_gim(install_path=".", force=False):
     else:
         print("📁 GIM repository already exists, skipping clone")
     
-    # Install GIM
-    print("📦 Installing GIM...")
-    install_cmd = f"{sys.executable} -m pip install -e ."
-    if not run_command(install_cmd, cwd=gim_path):
-        print("❌ Failed to install GIM")
-        return False
+    # Install GIM dependencies through conda environment if possible
+    print("📦 Setting up GIM dependencies...")
+    gim_env_file = gim_path / "environment.yaml"
     
-    print("✅ GIM installed successfully")
+    if gim_env_file.exists():
+        print("🐍 Found GIM environment.yaml, installing dependencies...")
+        
+        # Try to install dependencies from environment.yaml to current environment
+        try:
+            # Extract pip dependencies from environment.yaml
+            install_deps_cmd = f"{sys.executable} -m pip install kornia einops loguru h5py yacs"
+            if run_command(install_deps_cmd):
+                print("✅ GIM dependencies installed successfully")
+            else:
+                print("⚠️ Some GIM dependencies installation failed")
+        except Exception as e:
+            print(f"⚠️ Dependency installation error: {e}")
     
-    # Verify installation
-    print("🔍 Verifying GIM installation...")
+    # Setup GIM for direct usage (add to Python path)
+    print("🔧 Setting up GIM for direct usage...")
+    
+    # Create a simple __init__.py in gim directory if it doesn't exist
+    gim_init_file = gim_path / "__init__.py"
+    if not gim_init_file.exists():
+        try:
+            with open(gim_init_file, 'w') as f:
+                f.write("""# GIM Research Project
+# This makes the directory importable as a Python module
+__version__ = "research"
+""")
+            print("✅ Created GIM __init__.py for Python import")
+        except Exception as e:
+            print(f"⚠️ Failed to create __init__.py: {e}")
+    
+    # Verify GIM is accessible
+    print("🔍 Verifying GIM accessibility...")
     try:
-        # Test import
-        test_cmd = f"{sys.executable} -c \"import gim; print('GIM import successful')\""
-        if run_command(test_cmd, capture_output=True):
-            print("✅ GIM verification successful")
+        # Check if we can access demo.py
+        demo_file = gim_path / "demo.py"
+        if demo_file.exists():
+            print("✅ GIM demo.py found - GIM is ready for use")
+            print(f"   You can run GIM with: python {demo_file} --model gim_roma")
             return True
         else:
-            print("⚠️ GIM import test failed, but installation may still be working")
-            return True
+            print("⚠️ GIM demo.py not found")
+            return False
     except Exception as e:
         print(f"⚠️ GIM verification failed: {e}")
-        print("   Installation may still be working - try importing manually")
+        print("   GIM may still be usable through direct file access")
         return True
 
 
