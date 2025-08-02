@@ -101,6 +101,63 @@ python core/video_metrics_calculator.py \
 | **LPIPS** | 0.02-0.15 | 0.01-0.10 | Lower = Better |
 | **LSE** | 5-12 | - | Lower = Better |
 
+## 🏗️ Architecture
+
+```
+video-evaluation-toolkit/
+├── setup.py                   # 🆕 One-click installation
+├── install.sh                 # 🆕 Bash installer
+├── core/                      # Core evaluation engines
+│   └── video_metrics_calculator.py
+├── calculators/               # Individual metric calculators
+│   ├── lse_calculator.py     # LSE/lip-sync metrics
+│   ├── gim_calculator.py     # Image matching (GIM)
+│   └── vbench_calculator.py  # VBench integration
+├── apis/                      # Unified API interfaces
+│   └── clip_api.py           # CLIP video similarity
+├── examples/                  # Usage demonstrations
+├── docs/                      # Complete documentation
+├── configs/                   # Environment configurations
+└── models/                    # Pre-trained models (auto-downloaded)
+```
+
+## 🧪 Supported Metrics
+
+### Core Metrics (No Ground Truth Required)
+- **Video Info**: Frame count, resolution, FPS, duration
+- **Image Statistics**: Brightness, contrast, saturation, sharpness  
+- **Face Analysis**: Detection rate, size, stability
+- **Lip Sync**: LSE distance and confidence
+- **VBench**: Subject/background consistency, motion smoothness, aesthetic quality
+
+### Comparison Metrics (Requires Ground Truth)
+- **Image Quality**: PSNR, SSIM, LPIPS (full image or face region)
+- **Region Selection**: `--region face_only` or `--region full_image`
+
+## 🔧 Installation Options
+
+### Automatic (Recommended)
+```bash
+# Python installer (cross-platform)
+python setup.py --mode conda --gpu
+
+# Bash installer (Linux/macOS)  
+bash install.sh --gpu
+```
+
+### Manual Installation
+```bash
+# Create environment
+conda env create -f configs/environment.yaml
+conda activate video-evaluation
+
+# Install high-priority packages
+pip install mediapipe ultralytics vbench numba
+
+# Install project
+pip install -r configs/requirements.txt
+```
+
 ## 🤝 Contributing
 
 We welcome contributions! Please check our [Contributing Guidelines](CONTRIBUTING.md).
@@ -119,6 +176,21 @@ We welcome contributions! Please check our [Contributing Guidelines](CONTRIBUTIN
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🎯 Research Applications
+
+### Ideal for evaluating:
+- **Lip-sync video generation** (talking heads, dubbing)
+- **Face reenactment** and expression transfer
+- **Video-to-video translation** tasks
+- **General video generation** quality assessment
+- **Multi-modal video synthesis** evaluation
+
+### Used in research:
+- Video generation model comparison
+- Lip-sync quality benchmarking  
+- Cross-modal evaluation frameworks
+- Real-time video assessment systems
 
 ---
 
