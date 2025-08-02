@@ -199,7 +199,7 @@ python core/video_metrics_calculator.py --device cpu
 - **[Quick Start Guide](../QUICK_START.md)** - Get up and running in 5 minutes
 - **[MediaPipe Integration](MEDIAPIPE_INTEGRATION.md)** - Advanced face detection setup
 - **[GIM Integration](GIM_INTEGRATION.md)** - Image matching configuration  
-- **[API Reference](apis/README.md)** - Detailed API documentation
+- **[API Reference](../apis/README.md)** - Detailed API documentation
 - **[Changelog](../CHANGELOG.md)** - Complete version history
 
 ## 🎯 System Requirements

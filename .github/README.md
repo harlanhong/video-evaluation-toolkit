@@ -6,8 +6,8 @@ Welcome to the Video Evaluation Toolkit repository!
 
 ## Quick Links
 
-- 📚 [Documentation](docs/README.md)
-- 🤝 [Contributing Guidelines](CONTRIBUTING.md) 
+- 📚 [Documentation](../docs/README.md)
+- 🤝 [Contributing Guidelines](../CONTRIBUTING.md) 
 - 🐛 [Report Issues](../../issues)
 - 💬 [Discussions](../../discussions)
 
